@@ -146,8 +146,16 @@ if cachedFile == nil then
         command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=-1:x=-1:color=black" -c:a copy ' .. cachedFilepath .. filename
 
     elseif (flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
-        -- simple scale (no aspect ration)
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':force_divisible_by=2" -c:a copy ' .. cachedFilepath .. filename
+        -- simple scale (no aspect ratio)
+        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=disable,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+
+    elseif (flagValues['height'] ~= nil) then
+        -- simple one-side scale (h)
+        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=-1:' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+
+    elseif (flagValues['width'] ~= nil) then
+        -- simple one-side scale (w)
+        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':-1:force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
 
     end
 
