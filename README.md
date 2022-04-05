@@ -89,7 +89,7 @@ location =/luamp-upstream {
 
 ```
 
-##### 2.1. Video location
+#### 2.1. Video location
 This location used as an entry point and to set initial variables. This is usually a location with a `.mp4` at the end.
 
 There are two variables you need to `set`/initialise: `$luamp_original_video` and `$luamp_transcoded_video`.
@@ -124,7 +124,7 @@ location ~ ^/(?<luamp_flags>([^\/]+)\/|)(?<luamp_filename>[^\/]+\.mp4)$ {
 
 ```
 
-##### 2.2. Process location
+#### 2.2. Process location
 
 Process location is pretty simple, it just passes execution to the LUA part of luamp module:
 
@@ -134,7 +134,7 @@ location @luamp_process {
 }
 ```
 
-##### 2.3. Cache location
+#### 2.3. Cache location
 
 Cache location is where previously transcoded videos are served from:
 
@@ -150,7 +150,7 @@ location =/luamp-cache {
 }
 ```
 
-##### 2.4. Upstream location
+#### 2.4. Upstream location
 
 Upstream location is used when you have no original video files stored on your local file system (perhaps, those are stored on your old CDN, or elsewhere).
 If `luamp` finds no original file to transcode, it will attempt to download it from the upstream specified:
@@ -184,7 +184,7 @@ Open it with a text editor of your choice and change the variables you feel like
 $ nano config.lua
 ```
 
-##### 3.1. `config.ffmpeg`
+#### 3.1. `config.ffmpeg`
 
 Path to the `ffmpeg` executable. Can be figured out by using `which` command in the terminal:
 
@@ -193,30 +193,30 @@ $ which ffmpeg
 /usr/local/bin/ffmpeg
 ```
 
-##### 3.2. `config.mediaBaseFilepath`
+#### 3.2. `config.mediaBaseFilepath`
 
 Where videos (both originals and transcoded ones) should be stored. Usually, a directory where assets are stored. Should be readable/writable for nginx. 
 
-##### 3.3. `config.downloadOriginals`
+#### 3.3. `config.downloadOriginals`
 
 When set to `true`, `luamp` will attempt to download missing original videos from the upstream. Set it to `false` if you have original videos provided by other means to this directory:
 ```
 config.mediaBaseFilepath/$prefix/$postfix/$filename
 ```
 
-##### 3.4. `config.getOriginalsUpstreamPath`
+#### 3.4. `config.getOriginalsUpstreamPath`
 
 Function that is used to generate a URL for upstream. `prefix`, `postfix` and `filename` are provided to the function and you can also use [LUA ngx API](https://openresty-reference.readthedocs.io/en/latest/Lua_Nginx_API/).
 
-##### 3.5. `config.flagsDelimiter`
+#### 3.5. `config.flagsDelimiter`
 
 Character that is used to separate different flags in URL, e.g. commas in `/w_1280,h_960,c_pad/`.
  
-##### 3.6. `config.flagValueDelimiter`
+#### 3.6. `config.flagValueDelimiter`
 
 Character that is used to separate flag name from the value, e.g. underscores in `/w_1280,h_960,c_pad/`.
 
-##### 3.7. `config.flagMap`
+#### 3.7. `config.flagMap`
 
 Use this table to customize how flags are called in your URLs. Defaults are one letter flags like `w` for `width`, but you can customise these by editing left side of `flagMap` table:
 
@@ -240,7 +240,7 @@ Full flags if you want to use flags like `width_200,height_180,crop_pad`:
     ['width'] = 'width',
 ```
 
-##### 3.8. `config.flagValueMap`
+#### 3.8. `config.flagValueMap`
 
 Similar to `config.flagMap` above, but for non-number flag *values* rather than flag names.
 
@@ -263,19 +263,19 @@ config.flagValueMap = {
 }
 ```
 
-##### 3.9. `config.logEnabled = true`
+#### 3.9. `config.logEnabled = true`
 
 Whether to log whole `luamp` process. Useful for initial setup and for debug.
 
-##### 3.10. `config.logLevel = ngx.ERR`
+#### 3.10. `config.logLevel = ngx.ERR`
 
 Log level, available values: `ngx.STDERR`, `ngx.EMERG`, `ngx.ALERT`, `ngx.CRIT`, `ngx.ERR`, `ngx.WARN`, `ngx.NOTICE`, `ngx.INFO`, `ngx.DEBUG`.
 
-##### 3.11. `config.logFfmpegOutput`
+#### 3.11. `config.logFfmpegOutput`
 
 Whether to log `ffmpeg` output. Note that `ffmpeg` outputs to `stderr`, and if `logFfmpegOutput` is enabled, it will log to nginx's `error.log`. 
 
-##### 3.12. `config.ffmpegDevNull`
+#### 3.12. `config.ffmpegDevNull`
 
 Where to redirect `ffmpeg` output if `config.logFfmpegOutput` is set to false.
 
@@ -289,7 +289,7 @@ For win:
 config.ffmpegDevNull = '2>NUL' -- win
 ```
 
-##### 3.13. `config.logTime`
+#### 3.13. `config.logTime`
 
 Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time spent in transcoding.
 
