@@ -1,0 +1,68 @@
+local config = {}
+
+-- ########## CONFIG ##########
+-- change according to your needs
+
+-- `which ffmpeg`
+config.ffmpeg = '/usr/local/bin/ffmpeg'
+
+-- where to save original and transcoded files (trailing slash required)
+config.mediaBaseFilepath = '/tmp/nginx/'
+
+-- set to `true` to enable originals download from the upstream/CDN. See `getOriginalsUpstreamUrl` below
+config.downloadOriginals = true
+
+-- function to get a URL where originals are stored, when `downloadOriginals` set to true.
+function config.getOriginalsUpstreamPath(prefix, postfix, filename)
+    -- return ngx.var.request_uri
+    return (prefix or '') .. (postfix or '') .. (filename or '')
+end
+
+-- character that is used to separate different flags in URL.
+-- eg commas in `/w_1280,h_960,c_pad/`
+config.flagsDelimiter = ','
+
+-- character that is used to separate flag name from the value.
+-- eg underscores in `/w_1280,h_960,c_pad/`
+config.flagValueDelimiter = '_'
+
+-- override URL flag names. Useful when you migrate from another transcoding solution and already have
+-- some flags in use on the front end. Customize the left part of the table.
+-- eg `['cropping'] = 'crop'` to use `cropping` instead of the default `c`
+config.flagMap = {
+    ['c'] = 'crop', -- crop / scale
+    ['b'] = 'background',
+    ['dpr'] = 'dpr', -- DPR, https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
+    -- ['f'] = 'format',
+    ['h'] = 'height',
+    ['w'] = 'width',
+}
+
+-- override URL flag values. Useful when you migrate from another transcoding solution and already have
+-- some flag values in use on the front end. Customize the left part of the table
+-- eg `['padded'] = 'pad'` to use `padded` instead of the default `pad`
+-- Also, all flag values not present in this table will be considered (and cast to) a number
+config.flagValueMap = {
+    ['pad'] = 'padding',
+    ['lpad'] = 'limited_padding',
+    ['blurred'] = 'blur',
+}
+
+-- log transcoding process. Useful when doing initial setup or debugging issues
+config.logEnabled = false
+config.logLevel = ngx.ERR
+-- config.logLevel = ngx.INFO
+-- config.logLevel = ngx.DEBUG
+
+-- log `ffmpeg` output.
+-- If enabled, will log ffmpeg transcoding process output to error log (because that's where ffmpeg outputs to)
+config.logFfmpegOutput = false
+
+-- where to redirect ffmpeg output to (if `logFfmpegOutput = false`)
+config.ffmpegDevNull = '2> /dev/null' -- nix
+-- config.ffmpegDevNull = '2>NUL' -- win
+
+-- whether to prepend transcoding command with `time` utility to log time spent in ffmpeg
+config.logTime = false
+
+return config
