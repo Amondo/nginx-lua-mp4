@@ -291,16 +291,14 @@ For win:
 config.ffmpegDevNull = '2>NUL' -- win
 ```
 
-#### 3.13. `config.maxHeight` and `config.maxWidth`
+#### 3.13. `config.logTime`
 
 Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time spent in transcoding.
 
-#### 3.14. `config.logTime`
+#### 3.14. `config.maxHeight` and `config.maxWidth`
 
-config.maxWidth = 3840
+Limit the output video's maximum height or width. If the resulting height or width is exceeding the limit (for example, after a high DPR calculation), it will be capped at the `config.maxHeight` and `config.maxWidth`.
 
--- top limit for video width (default 4k UHD)
-config.maxHeight = 2160
 ## Flags
 
 ### `b` — Background
