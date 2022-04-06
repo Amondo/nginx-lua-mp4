@@ -121,6 +121,20 @@ if cachedFile == nil then
         log('w_h_dpr ' .. flagValues['width'] .. '_' .. flagValues['height'] .. '_' .. flagValues['dpr'])
     end
 
+    if config.maxHeight ~= nil then
+        if flagValues['height'] > config.maxHeight then
+            log('resulting height exceeds configured limit, capping it at ' .. config.maxHeight)
+            flagValues['height'] = config.maxHeight
+        end
+    end
+
+    if config.maxWidth ~= nil then
+        if flagValues['width'] > config.maxWidth then
+            log('resulting width exceeds configured limit, capping it at ' .. config.maxWidth)
+            flagValues['width'] = config.maxWidth
+        end
+    end
+
     log('transcoding to ' .. cachedFilepath .. filename)
 
     -- create cached transcoded file
@@ -171,6 +185,8 @@ if cachedFile == nil then
     else
         -- serve original
     end
+else
+    log('found previously transcoded version, serving it')
 end
 
 -- check if transcoded file is > 0KB
