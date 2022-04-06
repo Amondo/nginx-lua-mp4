@@ -63,7 +63,7 @@ location ~ ^/(?<luamp_flags>([^\/]+)\/|)(?<luamp_filename>[^\/]+\.mp4)$ {
     set $luamp_postfix "";
 
     #pass to transcoder location
-    try_files $uri @process;
+    try_files $uri @luamp_process;
 }
 
 # process/transcode location
@@ -121,7 +121,7 @@ location ~ ^/(?<luamp_flags>([^\/]+)\/|)(?<luamp_filename>[^\/]+\.mp4)$ {
     set $luamp_postfix "";
 
     #pass to transcoder location
-    try_files $uri @process;
+    try_files $uri @luamp_process;
 }
 
 ```
