@@ -23,7 +23,7 @@ Try to include as much as possible from this list:
 
 We use [GitHub flow](https://docs.github.com/en/get-started/quickstart/github-flow). In order to contribute code:
 1. Create a fork
-2. In that for, create a feature branch
+2. In that fork, create a feature branch
 3. Commit changes to that branch
 4. Create a Pull Request to the `nginx-lua-mp4` repo (mark "Work in Progress" PRs with `[WIP]` in the title)
 
