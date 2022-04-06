@@ -31,7 +31,8 @@ https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-8
 ## Requirements
 
 - OpenResty or nginx with ngx_http_lua_module enabled
-- ffmpeg installed
+- [ffmpeg 5](https://launchpad.net/~savoury1/+archive/ubuntu/ffmpeg5) installed
+- [time](https://en.wikipedia.org/wiki/Time_(Unix)) utility if you have `config.logTime` enabled
 
 ## Installation
 
