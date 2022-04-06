@@ -296,6 +296,10 @@ config.ffmpegDevNull = '2>NUL' -- win
 
 Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time spent in transcoding.
 
+#### 3.14. `config.maxHeight` and `config.maxWidth`
+
+Limit the output video's maximum height or width. If the resulting height or width is exceeding the limit (for example, after a high DPR calculation), it will be capped at the `config.maxHeight` and `config.maxWidth`.
+
 ## Flags
 
 ### `b` — Background

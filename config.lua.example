@@ -65,4 +65,10 @@ config.ffmpegDevNull = '2> /dev/null' -- nix
 -- whether to prepend transcoding command with `time` utility to log time spent in ffmpeg
 config.logTime = false
 
+-- top limit for output video height (default 4k UHD)
+config.maxHeight = 2160
+
+-- top limit for output video width (default 4k UHD)
+config.maxWidth = 3840
+
 return config
