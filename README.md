@@ -1,3 +1,10 @@
+Navigation:
+* [Features](#features)
+* [Requirements](#requirements)
+* [Installation](#installation)
+* [Update](#update)
+* [Flags](#flags)
+
 # nginx-lua-mp4
 
 nginx-lua-mp4 (or simply _luamp_) is a LUA module for [OpenResty](https://openresty.org/en/) or nginx with [ngx_http_lua_module](https://github.com/openresty/lua-nginx-module) that allows on-the-fly video transcoding using [ffmpeg](https://ffmpeg.org/) controlled by parameters passed in the URL.
@@ -299,6 +306,47 @@ Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time
 #### 3.14. `config.maxHeight` and `config.maxWidth`
 
 Limit the output video's maximum height or width. If the resulting height or width is exceeding the limit (for example, after a high DPR calculation), it will be capped at the `config.maxHeight` and `config.maxWidth`.
+
+## Update
+
+To update luamp, just do a `git pull`.
+
+After the pull, there may be some additions to the config file. Now, one can use a `diff` tool, but it will spew out all the differences, which can be overwhelming when you customize a lot in your config as compared to what is in the example config:
+
+```
+nginx-lua-mp4 $ diff config.lua config.lua.example
+52c52
+< config.logEnabled = true
+---
+> config.logEnabled = false
+59c59
+< config.logFfmpegOutput = true
+---
+> config.logFfmpegOutput = false
+66c66,72
+< config.logTime = true
+---
+> config.logTime = false
+> 
+> -- top limit for output video height (default 4k UHD)
+> config.maxHeight = 2160
+> 
+> -- top limit for output video width (default 4k UHD)
+> config.maxWidth = 3840
+
+```
+
+You definitely want to keep what was customized by you but also to get new config options that may be necessary. This one-liner will show you all the __new__ config entries, omitting what was customised, given you did not move options around and just edited them in place:
+
+```
+nginx-lua-mp4 $ sdiff -s config.lua config.lua.example | grep -e '\s*>' | sed -ne "s/^[[:space:]]*>\t//p"
+-- top limit for output video height (default 4k UHD)
+config.maxHeight = 2160
+-- top limit for output video width (default 4k UHD)
+config.maxWidth = 3840
+```
+
+You can now just copy and paste these lines above the `return config` in `config.lua` and that's it 👌
 
 ## Flags
 
