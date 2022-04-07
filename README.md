@@ -361,14 +361,14 @@ Available values:
  - `pad` — when resizing a video, aspect ratio will be preserved and padding box will be added to keep the aspect ratio. 
  - `lpad` — same as `pad` but original video will **not** be scaled up.
 
-### `dpr` Device Pixel Ratio
+### `dpr` — Device Pixel Ratio
 
 Available values: float or integer number.
 
-### `h` Height
+### `h` — Height
 
 Available values: integer number.
 
-### `w` Width
+### `w` — Width
 
 Available values: integer number.
