@@ -31,7 +31,7 @@ https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-8
     - ✅ Black box padding
     - ✅ Blurred background padding
     - ✅ Upscale protection
-    - 🚧 Colored box padding
+    - 🚧 Coloured box padding
   - ✅ Keep original aspect ratio
   - ✅ mp4 support (output)
   - 🚧 webm support (output)
