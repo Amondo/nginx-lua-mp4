@@ -126,14 +126,14 @@ if cachedFile == nil then
         log('w_h_dpr ' .. (flagValues['width'] or 'nil') .. '_' .. (flagValues['height'] or 'nil') .. '_' .. flagValues['dpr'])
     end
 
-    if config.maxHeight ~= nil then
+    if config.maxHeight ~= nil and flagValues['height'] ~= nil then
         if flagValues['height'] > config.maxHeight then
             log('resulting height exceeds configured limit, capping it at ' .. config.maxHeight)
             flagValues['height'] = config.maxHeight
         end
     end
 
-    if config.maxWidth ~= nil then
+    if config.maxWidth ~= nil and flagValues['width'] ~= nil then
         if flagValues['width'] > config.maxWidth then
             log('resulting width exceeds configured limit, capping it at ' .. config.maxWidth)
             flagValues['width'] = config.maxWidth
