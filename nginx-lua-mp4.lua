@@ -121,7 +121,6 @@ if cachedFile == nil then
         end
         if flagValues['width'] ~= nil then
             flagValues['width'] = math.ceil(flagValues['width'] * flagValues['dpr'])
-
         end
         log('w_h_dpr ' .. (flagValues['width'] or 'nil') .. '_' .. (flagValues['height'] or 'nil') .. '_' .. flagValues['dpr'])
     end
