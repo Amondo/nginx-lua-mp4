@@ -115,14 +115,14 @@ if cachedFile == nil then
 
     -- process DPR
     if (flagValues['dpr'] ~= nil) then
-        log('w_h_dpr ' .. (flagValues['width'] or 'nil') .. '_' .. (flagValues['height'] or 'nil') .. '_' .. flagValues['dpr'])
+        log('before DPR calculation, w: ' .. (flagValues['width'] or 'nil') .. ', h: ' .. (flagValues['height'] or 'nil'))
         if flagValues['height'] ~= nil then
             flagValues['height'] = math.ceil(flagValues['height'] * flagValues['dpr'])
         end
         if flagValues['width'] ~= nil then
             flagValues['width'] = math.ceil(flagValues['width'] * flagValues['dpr'])
         end
-        log('w_h_dpr ' .. (flagValues['width'] or 'nil') .. '_' .. (flagValues['height'] or 'nil') .. '_' .. flagValues['dpr'])
+        log('after DPR calculation, w: ' .. (flagValues['width'] or 'nil') .. ', h: ' .. (flagValues['height'] or 'nil'))
     end
 
     if config.maxHeight ~= nil and flagValues['height'] ~= nil then
