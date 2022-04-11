@@ -31,6 +31,9 @@ local enabledFlags = {
 for flag, value in string.gmatch(flags, '(%w+)' .. config.flagValueDelimiter .. '([^' .. config.flagsDelimiter .. '\\/]+)' .. config.flagsDelimiter .. '*') do
     -- if the flag is enabled
     if value ~= nil and enabledFlags[config.flagMap[flag]] ~= nil then
+        if config.flagPreprocessHook ~= nil then
+            flag, value = config.flagPreprocessHook(flag, value)
+        end
         log(config.flagMap[flag] .. ' ' .. value)
         -- add it
         table.insert(flagOrdered, config.flagMap[flag])
