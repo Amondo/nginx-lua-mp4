@@ -307,6 +307,10 @@ Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time
 
 Limit the output video's maximum height or width. If the resulting height or width is exceeding the limit (for example, after a high DPR calculation), it will be capped at the `config.maxHeight` and `config.maxWidth`.
 
+#### 3.15. `flagPreprocessHook(flag, value)`
+
+Customize this function to preprocess flags or their values. Return values should contain values that are present in `config.flagMap` and `config.flagValueMap`.
+
 ## Update
 
 To update luamp, just do a `git pull`.

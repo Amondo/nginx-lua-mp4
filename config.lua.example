@@ -71,4 +71,13 @@ config.maxHeight = 2160
 -- top limit for output video width (default 4k UHD)
 config.maxWidth = 3840
 
+-- customize this function to preprocess flags or their values
+-- return values should contain values that are present in `config.flagMap` and `config.flagValueMap`
+function config.flagPreprocessHook(flag, value)
+    -- do some processing
+    -- strip sub parameters `c_pad:pink`  -> `c_pad`
+    -- value = value:gsub('([^:]+):?.*', '%1')
+    return flag, value
+end
+
 return config
