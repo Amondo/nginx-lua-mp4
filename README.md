@@ -12,9 +12,9 @@ nginx-lua-mp4 (or simply _luamp_) is a LUA module for [OpenResty](https://openre
 To put it simply, if you have a 1920x1080 video file
 `https://example.com/vids/cat.mp4`, you can request URL `https://example.com/vids/w_640/cat.mp4` and you will get a 640x360 of the same video. You can crop/scale, keep aspect ratio or discard it, add padding around video (need a dynamic blurred padding? We got you covered).
 
-## Features
-
 https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-810c-f13a820a6c4b.mp4
+
+## Features
 
 ✅ — ready, 🚧 — WIP
 
