@@ -24,7 +24,7 @@ https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-8
   - ✅ Configurable logging for debug/setup
   - ✅ [DPR (device pixel ratio) support](https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio)
   - ✅ Pass data back to nginx location after transcoding, so you can customize post-process or call more LUA modules
-  - 🚧 Serve original on failed transcoding
+  - ✅ Serve original on failed transcoding
 - Transcoding:
   - ✅ Scale/Resize
   - Padding:
@@ -194,7 +194,14 @@ Open it with a text editor of your choice and change the variables you feel like
 $ nano config.lua
 ```
 
-#### 3.1. `config.ffmpeg`
+#### `config.downloadOriginals`
+
+When set to `true`, `luamp` will attempt to download missing original videos from the upstream. Set it to `false` if you have original videos provided by other means to this directory:
+```
+config.mediaBaseFilepath/$prefix/$postfix/$filename
+```
+
+#### `config.ffmpeg`
 
 Path to the `ffmpeg` executable. Can be figured out by using `which` command in the terminal:
 
@@ -203,30 +210,21 @@ $ which ffmpeg
 /usr/local/bin/ffmpeg
 ```
 
-#### 3.2. `config.mediaBaseFilepath`
+#### `config.ffmpegDevNull`
 
-Where videos (both originals and transcoded ones) should be stored. Usually, a directory where assets are stored. Should be readable/writable for nginx. 
+Where to redirect `ffmpeg` output if `config.logFfmpegOutput` is set to false.
 
-#### 3.3. `config.downloadOriginals`
-
-When set to `true`, `luamp` will attempt to download missing original videos from the upstream. Set it to `false` if you have original videos provided by other means to this directory:
+For *nix (default value):
 ```
-config.mediaBaseFilepath/$prefix/$postfix/$filename
+config.ffmpegDevNull = '2> /dev/null' -- nix
 ```
 
-#### 3.4. `config.getOriginalsUpstreamPath`
+For win:
+```
+config.ffmpegDevNull = '2>NUL' -- win
+```
 
-Function that is used to generate a URL for upstream. `prefix`, `postfix` and `filename` are provided to the function and you can also use [LUA ngx API](https://openresty-reference.readthedocs.io/en/latest/Lua_Nginx_API/).
-
-#### 3.5. `config.flagsDelimiter`
-
-Character that is used to separate different flags in URL, e.g. commas in `/w_1280,h_960,c_pad/`.
- 
-#### 3.6. `config.flagValueDelimiter`
-
-Character that is used to separate flag name from the value, e.g. underscores in `/w_1280,h_960,c_pad/`.
-
-#### 3.7. `config.flagMap`
+#### `config.flagMap`
 
 Use this table to customize how flags are called in your URLs. Defaults are one letter flags like `w` for `width`, but you can customise these by editing left side of `flagMap` table:
 
@@ -250,7 +248,19 @@ Full flags if you want to use flags like `width_200,height_180,crop_pad`:
     ['width'] = 'width',
 ```
 
-#### 3.8. `config.flagValueMap`
+#### `config.flagPreprocessHook(flag, value)`
+
+Customize this function to preprocess flags or their values. Return values should contain values that are present in `config.flagMap` and `config.flagValueMap`.
+
+#### `config.flagsDelimiter`
+
+Character that is used to separate different flags in URL, e.g. commas in `/w_1280,h_960,c_pad/`.
+ 
+#### `config.flagValueDelimiter`
+
+Character that is used to separate flag name from the value, e.g. underscores in `/w_1280,h_960,c_pad/`.
+
+#### `config.flagValueMap`
 
 Similar to `config.flagMap` above, but for non-number flag *values* rather than flag names.
 
@@ -273,43 +283,43 @@ config.flagValueMap = {
 }
 ```
 
-#### 3.9. `config.logEnabled = true`
+#### `config.getOriginalsUpstreamPath`
+
+Function that is used to generate a URL for upstream. `prefix`, `postfix` and `filename` are provided to the function and you can also use [LUA ngx API](https://openresty-reference.readthedocs.io/en/latest/Lua_Nginx_API/).
+
+#### `config.logEnabled = true`
 
 Whether to log whole `luamp` process. Useful for initial setup and for debug.
 
-#### 3.10. `config.logLevel = ngx.ERR`
-
-Log level, available values: `ngx.STDERR`, `ngx.EMERG`, `ngx.ALERT`, `ngx.CRIT`, `ngx.ERR`, `ngx.WARN`, `ngx.NOTICE`, `ngx.INFO`, `ngx.DEBUG`.
-
-#### 3.11. `config.logFfmpegOutput`
+#### `config.logFfmpegOutput`
 
 Whether to log `ffmpeg` output. Note that `ffmpeg` outputs to `stderr`, and if `logFfmpegOutput` is enabled, it will log to nginx's `error.log`. 
 
-#### 3.12. `config.ffmpegDevNull`
+#### `config.logLevel = ngx.ERR`
 
-Where to redirect `ffmpeg` output if `config.logFfmpegOutput` is set to false.
+Log level, available values: `ngx.STDERR`, `ngx.EMERG`, `ngx.ALERT`, `ngx.CRIT`, `ngx.ERR`, `ngx.WARN`, `ngx.NOTICE`, `ngx.INFO`, `ngx.DEBUG`.
 
-For *nix (default value):
-```
-config.ffmpegDevNull = '2> /dev/null' -- nix
-```
-
-For win:
-```
-config.ffmpegDevNull = '2>NUL' -- win
-```
-
-#### 3.13. `config.logTime`
+#### `config.logTime`
 
 Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time spent in transcoding.
 
-#### 3.14. `config.maxHeight` and `config.maxWidth`
+#### `config.maxHeight` and `config.maxWidth`
 
 Limit the output video's maximum height or width. If the resulting height or width is exceeding the limit (for example, after a high DPR calculation), it will be capped at the `config.maxHeight` and `config.maxWidth`.
 
-#### 3.15. `flagPreprocessHook(flag, value)`
+#### `config.mediaBaseFilepath`
 
-Customize this function to preprocess flags or their values. Return values should contain values that are present in `config.flagMap` and `config.flagValueMap`.
+Where videos (both originals and transcoded ones) should be stored. Usually, a directory where assets are stored. Should be readable/writable for nginx. 
+
+#### `config.minimumTranscodedFileSize`
+
+Minimum required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1KB).
+
+During the transcoding, errors may occur and ffmpeg sometimes leaves corrupt files on the FS. Those are usually either 0B or just a few bytes of header. Luamp will delete those that are less than `minimumTranscodedFileSize` bytes. 
+
+#### `config.serveOriginalOnTranscodeFailure`
+
+Serve original file when transcode failed. If set to `false`, luamp will respond with 404 in this case
 
 ## Update
 
