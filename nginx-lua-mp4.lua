@@ -6,7 +6,24 @@ function log(data)
     end
 end
 
+function setDefaultConfig(option, value)
+    if config[option] == nil then
+        log('setting default config for ' .. option)
+        config[option] = value
+    end
+end
+
+local configDefaults = {
+    ['minimumTranscodedFileSize'] = 1024,
+    ['serveOriginalOnTranscodeFailure'] = true,
+}
+
 log('luamp started')
+
+-- set missing config options to the defaults
+for o, v in pairs(configDefaults) do
+    setDefaultConfig(o, v)
+end
 
 -- get url params
 local prefix, flags, postfix, filename = ngx.var.luamp_prefix, ngx.var.luamp_flags, ngx.var.luamp_postfix, ngx.var.luamp_filename
@@ -74,6 +91,7 @@ end
 
 -- check if we already have cached version of a file
 local cachedFilepath = config.mediaBaseFilepath .. (prefix or '') .. (optionsPath or '') .. (postfix or '')
+local originalFilepath = config.mediaBaseFilepath .. (prefix or '') .. (postfix or '')
 log('checking for cached transcoded version at: ' .. cachedFilepath .. filename)
 local cachedFile = io.open(cachedFilepath .. filename, 'r')
 
@@ -82,9 +100,8 @@ if cachedFile == nil then
     -- create cached version
 
     -- check if we have original file to transcode
-    local originalPath = config.mediaBaseFilepath .. (prefix or '') .. (postfix or '')
-    log('checking for original version at: ' .. originalPath .. filename)
-    local originalFileCheck = io.open(originalPath .. filename)
+    log('checking for original version at: ' .. originalFilepath .. filename)
+    local originalFileCheck = io.open(originalFilepath .. filename)
 
     -- check if we have original
     if not originalFileCheck then
@@ -100,11 +117,11 @@ if cachedFile == nil then
             log('upstream status: ' .. originalReq.status)
             if originalReq.status == ngx.HTTP_OK and originalReq.body:len() > 0 then
                 log('downloaded original, saving')
-                os.execute('mkdir -p ' .. originalPath)
-                local originalFile = io.open(originalPath .. filename, 'w')
+                os.execute('mkdir -p ' .. originalFilepath)
+                local originalFile = io.open(originalFilepath .. filename, 'w')
                 originalFile:write(originalReq.body)
                 originalFile:close()
-                log('saved to ' .. originalPath .. filename)
+                log('saved to ' .. originalFilepath .. filename)
             else
                 ngx.exit(ngx.HTTP_NOT_FOUND)
             end
@@ -152,33 +169,35 @@ if cachedFile == nil then
 
     if (flagValues['background'] ~= nil and flagValues['background'] == 'blur' and flagValues['crop'] ~= nil and flagValues['crop'] == 'limited_padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale + padded (no upscale) + blurred bg
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=(H-h)/2:x=(W-w)/2" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=(H-h)/2:x=(W-w)/2" -c:a copy ' .. cachedFilepath .. filename
 
     elseif (flagValues['background'] ~= nil and flagValues['background'] == 'blur' and flagValues['crop'] ~= nil and flagValues['crop'] == 'padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale + padded (with upscale) + blurred bg
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=(H-h)/2:x=(W-w)/2" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=(H-h)/2:x=(W-w)/2" -c:a copy ' .. cachedFilepath .. filename
 
     elseif (flagValues['crop'] ~= nil and flagValues['crop'] == 'limited_padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale (no upscale) with padding (blackbox)
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=-1:x=-1:color=black" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=-1:x=-1:color=black" -c:a copy ' .. cachedFilepath .. filename
 
     elseif (flagValues['crop'] ~= nil and flagValues['crop'] == 'padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale (with upscale) with padding (blackbox)
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=-1:x=-1:color=black" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=-1:x=-1:color=black" -c:a copy ' .. cachedFilepath .. filename
 
     elseif (flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- simple scale (no aspect ratio)
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=disable,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=disable,setsar=1" -c:a copy ' .. cachedFilepath .. filename
 
     elseif (flagValues['height'] ~= nil) then
         -- simple one-side scale (h)
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=-1:' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=-1:' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
 
     elseif (flagValues['width'] ~= nil) then
         -- simple one-side scale (w)
-        command = config.ffmpeg .. ' -i ' .. originalPath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':-1:force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':-1:force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
 
     end
+
+    local executeSuccess
 
     if command ~= nil then
         if config.logFfmpegOutput == false then
@@ -188,17 +207,40 @@ if cachedFile == nil then
             command = 'time ' .. command
         end
         log('ffmpeg command: ' .. command)
-        os.execute(command)
-    else
-        -- serve original
+        executeSuccess = os.execute(command)
     end
-else
-    log('found previously transcoded version, serving it')
+
+    if executeSuccess == nil then
+        log('transcode failed')
+
+        if config.serveOriginalOnTranscodeFailure == true then
+            log('serving original from: ' .. originalFilepath .. filename)
+            ngx.exec('/luamp-cache', { luamp_cached_video_path = originalFilepath .. filename })
+        end
+    else
+        -- check if transcoded file is > minimumTranscodedFileSize
+        -- we do this inside the transcoding `if` block to not mess with other threads
+        local transcodedFile = io.open(cachedFilepath .. filename, 'rb')
+        local transcodedFileSize = transcodedFile:seek('end')
+        transcodedFile:close()
+
+        if transcodedFileSize > config.minimumTranscodedFileSize then
+            log('transcoded version is good, serving it')
+            -- serve it
+            ngx.exec('/luamp-cache', { luamp_cached_video_path = cachedFilepath .. filename })
+        else
+            log('transcoded version is corrupt')
+            -- delete corrupt one
+            os.remove(cachedFilepath .. filename)
+
+            -- serve original
+            if config.serveOriginalOnTranscodeFailure == true then
+                log('serving original')
+                ngx.exec('/luamp-cache', { luamp_cached_video_path = originalFilepath .. filename })
+            end
+        end
+    end
 end
 
--- check if transcoded file is > 0KB
--- serve it
+log('found previously transcoded version, serving it')
 ngx.exec('/luamp-cache', { luamp_cached_video_path = cachedFilepath .. filename })
-
--- otherwise serve original
--- and delete 0KB one

@@ -80,4 +80,10 @@ function config.flagPreprocessHook(flag, value)
     return flag, value
 end
 
+-- serve original file when transcode failed.
+config.serveOriginalOnTranscodeFailure = true
+
+-- least required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1KB)
+config.minimumTranscodedFileSize = 1024
+
 return config
