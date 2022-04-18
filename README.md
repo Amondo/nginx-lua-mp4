@@ -61,7 +61,7 @@ http {
 And here's minimal viable config for 4 locations you need to set up. These locations are described in the sections below:
 ```
 # video location
-location ~ ^/(?<luamp_flags>([^\/]+)\/|)(?<luamp_filename>[^\/]+\.mp4)$ {
+location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
     # these two are required to be set regardless
     set $luamp_original_video "";
     set $luamp_transcoded_video "";
@@ -119,7 +119,7 @@ luamp_filename: new_year_boardgames_party.mp4
 If you do not need prefix and postfix, you can omit them from the regexp, but do make sure you `set` them to an empty string in the location. Here's the minimal viable example for simpler URLs with no prefix/postfix:
 
 ```
-location ~ ^/(?<luamp_flags>([^\/]+)\/|)(?<luamp_filename>[^\/]+\.mp4)$ {
+location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
     # these two are required to be set regardless
     set $luamp_original_video "";
     set $luamp_transcoded_video "";
@@ -133,6 +133,18 @@ location ~ ^/(?<luamp_flags>([^\/]+)\/|)(?<luamp_filename>[^\/]+\.mp4)$ {
 }
 
 ```
+
+#### Security considerations
+`prefix`, `postfix` and `filename` are passed to the `os.execute()` with following sanitisation: 
+- alphanumeric symbols, underscores, dots and slashes are allowed.
+- all other symbols are stripped.
+- then, double dots are stripped.
+
+These sanitisation rules are enough to prevent shell injections and path traversal. However, especially if you decide to modify luamp code, consider using following capture patterns in the video location:
+- `(?<luamp_prefix>[0-9a-zA-Z_\-\.\/]+\/)`
+- `(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)`
+- `(?<luamp_postfix>[0-9a-zA-Z_\-\.\/]+\/)`
+- `(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)`
 
 #### 2.2. Process location
 

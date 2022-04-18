@@ -13,6 +13,13 @@ function setDefaultConfig(option, value)
     end
 end
 
+function cleanupPath(path)
+    -- allow only alphanumeric + underscore + dash + slash + dot
+    local retVal = path:gsub('[^%w_%-/.]', '')
+    -- strip double+ dot
+    return retVal:gsub('([\\.][\\.]+)', '')
+end
+
 local configDefaults = {
     ['minimumTranscodedFileSize'] = 1024,
     ['serveOriginalOnTranscodeFailure'] = true,
@@ -32,6 +39,10 @@ log('prefix: ' .. prefix)
 log('flags: ' .. flags)
 log('postfix: ' .. postfix)
 log('filename: ' .. filename)
+
+prefix = cleanupPath(prefix)
+postfix = cleanupPath(postfix)
+filename = cleanupPath(filename)
 
 local flagValues = {}
 local flagOrdered = {}
