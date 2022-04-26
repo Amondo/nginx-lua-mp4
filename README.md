@@ -398,3 +398,15 @@ Available values: integer number.
 ### `w` — Width
 
 Available values: integer number.
+
+### `x` — X coordinate for overlay with `[limited_]padding` crop
+
+Available values: 
+- integer number for pixels
+- decimal number in range `(0, 1)` for percentage: 0.25 is 25% of resulting width (after DPR is applied)
+
+### `y` — Y coordinate for overlay with `[limited_]padding` crop
+
+Available values: 
+- integer number for pixels
+- decimal number in range `(0, 1)` for percentage: 0.25 is 25% of resulting height (after DPR is applied)
