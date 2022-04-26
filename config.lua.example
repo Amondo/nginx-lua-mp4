@@ -36,6 +36,8 @@ config.flagMap = {
     -- ['f'] = 'format',
     ['h'] = 'height',
     ['w'] = 'width',
+    ['x'] = 'x',
+    ['y'] = 'y',
 }
 
 -- override URL flag values. Useful when you migrate from another transcoding solution and already have
