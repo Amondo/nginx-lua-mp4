@@ -272,7 +272,9 @@ if cachedFile == nil then
             end
         end
     end
+else
+    log('found previously transcoded version, serving it')
+    cachedFile:close()
 end
 
-log('found previously transcoded version, serving it')
 ngx.exec('/luamp-cache', { luamp_cached_video_path = cachedFilepath .. filename })
