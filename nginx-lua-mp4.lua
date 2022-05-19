@@ -1,4 +1,4 @@
-local config = require('config')
+config = require('config')
 
 function log(data)
     if (config.logEnabled == true) then

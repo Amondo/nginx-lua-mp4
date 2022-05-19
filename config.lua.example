@@ -1,4 +1,4 @@
-local config = {}
+config = {}
 
 -- ########## CONFIG ##########
 -- change according to your needs
