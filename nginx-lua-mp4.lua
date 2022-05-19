@@ -15,7 +15,7 @@ end
 
 function cleanupPath(path)
     -- allow only alphanumeric + underscore + dash + slash + dot
-    local retVal = path:gsub('[^%w_%-/.]', '')
+    local retVal = path:gsub('[^%w_%-/.=]', '')
     -- strip double+ dot
     return retVal:gsub('([\\.][\\.]+)', '')
 end
