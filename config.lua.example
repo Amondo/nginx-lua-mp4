@@ -88,4 +88,10 @@ config.serveOriginalOnTranscodeFailure = true
 -- least required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1KB)
 config.minimumTranscodedFileSize = 1024
 
+-- encoding preset to use https://trac.ffmpeg.org/wiki/Encode/H.264
+config.ffmpegPreset = ''
+-- config.ffmpegPreset = 'ultrafast'
+-- config.ffmpegPreset = 'superfast'
+-- config.ffmpegPreset = 'veryfast'
+
 return config

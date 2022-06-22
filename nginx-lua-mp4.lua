@@ -23,6 +23,7 @@ end
 local configDefaults = {
     ['minimumTranscodedFileSize'] = 1024,
     ['serveOriginalOnTranscodeFailure'] = true,
+    ['ffmpegPreset'] = '',
 }
 
 log('luamp started')
@@ -191,6 +192,13 @@ if cachedFile == nil then
         log('absolute y: ' .. flagValues['y'])
     end
 
+    local preset = ''
+    -- setting x264 preset
+    if (config['ffmpegPreset'] ~= '') then
+        log('x264 preset: ' .. config['ffmpegPreset'])
+        preset = ' -preset ' .. config['ffmpegPreset'] .. ' '
+    end
+
     log('transcoding to ' .. cachedFilepath .. filename)
 
     -- create cached transcoded file
@@ -201,31 +209,31 @@ if cachedFile == nil then
 
     if (flagValues['background'] ~= nil and flagValues['background'] == 'blur' and flagValues['crop'] ~= nil and flagValues['crop'] == 'limited_padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale + padded (no upscale) + blurred bg
-        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' .. (flagValues['y'] or '(H-h)/2') .. ':x=' .. (flagValues['x'] or '(W-w)/2') .. '" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' .. (flagValues['y'] or '(H-h)/2') .. ':x=' .. (flagValues['x'] or '(W-w)/2') .. '" -c:a copy ' .. preset .. cachedFilepath .. filename
 
     elseif (flagValues['background'] ~= nil and flagValues['background'] == 'blur' and flagValues['crop'] ~= nil and flagValues['crop'] == 'padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale + padded (with upscale) + blurred bg
-        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' .. (flagValues['y'] or '(H-h)/2') .. ':x=' .. (flagValues['x'] or '(W-w)/2') .. '" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ', setsar=1[background];[second]scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' .. (flagValues['y'] or '(H-h)/2') .. ':x=' .. (flagValues['x'] or '(W-w)/2') .. '" -c:a copy ' .. preset .. cachedFilepath .. filename
 
     elseif (flagValues['crop'] ~= nil and flagValues['crop'] == 'limited_padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale (no upscale) with padding (blackbox)
-        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=' .. (flagValues['y'] or '-1') .. ':x=' .. (flagValues['x'] or '-1') .. ':color=black" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw):min(' .. flagValues['height'] .. '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=' .. (flagValues['y'] or '-1') .. ':x=' .. (flagValues['x'] or '-1') .. ':color=black" -c:a copy ' .. preset .. cachedFilepath .. filename
 
     elseif (flagValues['crop'] ~= nil and flagValues['crop'] == 'padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale (with upscale) with padding (blackbox)
-        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=' .. (flagValues['y'] or '-1') .. ':x=' .. (flagValues['x'] or '-1') .. ':color=black" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=' .. (flagValues['y'] or '-1') .. ':x=' .. (flagValues['x'] or '-1') .. ':color=black" -c:a copy ' .. preset .. cachedFilepath .. filename
 
     elseif (flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- simple scale (no aspect ratio)
-        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=disable,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=disable,setsar=1" -c:a copy ' .. preset .. cachedFilepath .. filename
 
     elseif (flagValues['height'] ~= nil) then
         -- simple one-side scale (h)
-        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=-1:' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=-1:' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. preset .. cachedFilepath .. filename
 
     elseif (flagValues['width'] ~= nil) then
         -- simple one-side scale (w)
-        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':-1:force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. cachedFilepath .. filename
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':-1:force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' .. preset .. cachedFilepath .. filename
 
     end
 
