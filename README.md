@@ -35,15 +35,15 @@ https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-8
   - ✅ Keep original aspect ratio
   - ✅ mp4 support (output)
   - 🚧 webm support (output)
-## Requirements
 
+## Requirements
 - OpenResty or nginx with ngx_http_lua_module enabled
 - [ffmpeg 5](https://launchpad.net/~savoury1/+archive/ubuntu/ffmpeg5) installed
 - [time](https://en.wikipedia.org/wiki/Time_(Unix)) utility if you have `config.logTime` enabled
 
 ## Installation
 
-#### 1. Clone the repo 
+#### 1. Clone the repo
 
 #### 2. nginx config changes
 
@@ -52,9 +52,9 @@ Add to the `http` section of the nginx config:
 ```
 http {
     ...
-    
+
     lua_package_path "/absolute/path/to/nginx-lua-mp4/?.lua;;";
-    
+
     ...
 ```
 
@@ -63,9 +63,9 @@ And here's minimal viable config for 4 locations you need to set up. These locat
 # video location
 location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
     # these two are required to be set regardless
-    set $luamp_original_video "";
-    set $luamp_transcoded_video "";
-    
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
@@ -79,21 +79,40 @@ location @luamp_process {
     content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
 }
 
+# image location
+location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+    # these two are required to be set regardless
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
+    # these are needed to be set if you did not use them in regex matching location
+    set $luamp_prefix "";
+    set $luamp_postfix "";
+
+    #pass to transcoder location
+    try_files $uri @luamp_image_process;
+}
+
+# image process/transcode location
+location @luamp_image_process {
+    content_by_lua_file "/usr/local/openresty/nginx/nginx-lua-image.lua";
+}
+
 # cache location
 location =/luamp-cache {
     internal;
     root /;
     index off;
-    
-    set_unescape_uri $luamp_transcoded_video $arg_luamp_cached_video_path;
-    
-    try_files $luamp_transcoded_video =404;
+
+    set_unescape_uri $luamp_transcoded_file $arg_luamp_cached_file_path;
+
+    try_files $luamp_transcoded_file =404;
 }
 
 # upstream location
 location =/luamp-upstream {
     internal;
-    rewrite ^(.+)$ $luamp_original_video break;
+    rewrite ^(.+)$ $luamp_original_file break;
     proxy_pass https://old-cdn.example.com;
 }
 
@@ -102,7 +121,7 @@ location =/luamp-upstream {
 #### 2.1. Video location
 This location used as an entry point and to set initial variables. This is usually a location with a `.mp4` at the end.
 
-There are two variables you need to `set`/initialise: `$luamp_original_video` and `$luamp_transcoded_video`.
+There are two variables you need to `set`/initialise: `$luamp_original_file` and `$luamp_transcoded_file`.
 
 There are four variables that may be used as a named capture group in location regex: `luamp_prefix`, `luamp_flags`, `luamp_postfix`, `luamp_filename`.
 
@@ -121,9 +140,9 @@ If you do not need prefix and postfix, you can omit them from the regexp, but do
 ```
 location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
     # these two are required to be set regardless
-    set $luamp_original_video "";
-    set $luamp_transcoded_video "";
-    
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
@@ -135,7 +154,8 @@ location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_
 ```
 
 #### Security considerations
-`prefix`, `postfix` and `filename` are passed to the `os.execute()` with following sanitisation: 
+`prefix`, `postfix` and `filename` are passed to the `os.execute()` with following sanitisation:
+
 - alphanumeric symbols, underscores, dots and slashes are allowed.
 - all other symbols are stripped.
 - then, double dots are stripped.
@@ -165,10 +185,10 @@ location =/luamp-cache {
     internal;
     root /;
     index off;
-    
-    set_unescape_uri $luamp_transcoded_video $arg_luamp_cached_video_path;
-    
-    try_files $luamp_transcoded_video =404;
+
+    set_unescape_uri $luamp_transcoded_file $arg_luamp_cached_video_path;
+
+    try_files $luamp_transcoded_file =404;
 }
 ```
 
@@ -179,12 +199,12 @@ If `luamp` finds no original file to transcode, it will attempt to download it f
 ```
 location =/luamp-upstream {
     internal;
-    rewrite ^(.+)$ $luamp_original_video break;
+    rewrite ^(.+)$ $luamp_original_file break;
     proxy_pass https://old-cdn.example.com;
 }
 ```
 
-`$luamp_original_video` is set within `config.getOriginalsUpstreamPath` function that can be configured in `luamp` config.lua. You can apply whatever logic you may need there to dynamically generate path for the upstream.
+`$luamp_original_file` is set within `config.getOriginalsUpstreamPath` function that can be configured in `luamp` config.lua. You can apply whatever logic you may need there to dynamically generate path for the upstream.
 
 #### 3. nginx-lua-mp4 config
 
@@ -226,7 +246,7 @@ $ which ffmpeg
 
 Where to redirect `ffmpeg` output if `config.logFfmpegOutput` is set to false.
 
-For *nix (default value):
+For \*nix (default value):
 ```
 config.ffmpegDevNull = '2> /dev/null' -- nix
 ```
@@ -243,7 +263,7 @@ Use this table to customize how flags are called in your URLs. Defaults are one 
 One letter flags (except for DPR) if you want to use flags like `w_200,h_180,c_pad`:
 
 ```
-    ['c'] = 'crop', 
+    ['c'] = 'crop',
     ['b'] = 'background',
     ['dpr'] = 'dpr',
     ['h'] = 'height',
@@ -253,7 +273,7 @@ One letter flags (except for DPR) if you want to use flags like `w_200,h_180,c_p
 Full flags if you want to use flags like `width_200,height_180,crop_pad`:
 
 ```
-    ['crop'] = 'crop', 
+    ['crop'] = 'crop',
     ['background'] = 'background',
     ['dpr'] = 'dpr',
     ['height'] = 'height',
@@ -267,7 +287,7 @@ Customize this function to preprocess flags or their values. Return values shoul
 #### `config.flagsDelimiter`
 
 Character that is used to separate different flags in URL, e.g. commas in `/w_1280,h_960,c_pad/`.
- 
+
 #### `config.flagValueDelimiter`
 
 Character that is used to separate flag name from the value, e.g. underscores in `/w_1280,h_960,c_pad/`.
@@ -305,7 +325,7 @@ Whether to log whole `luamp` process. Useful for initial setup and for debug.
 
 #### `config.logFfmpegOutput`
 
-Whether to log `ffmpeg` output. Note that `ffmpeg` outputs to `stderr`, and if `logFfmpegOutput` is enabled, it will log to nginx's `error.log`. 
+Whether to log `ffmpeg` output. Note that `ffmpeg` outputs to `stderr`, and if `logFfmpegOutput` is enabled, it will log to nginx's `error.log`.
 
 #### `config.logLevel = ngx.ERR`
 
@@ -321,13 +341,13 @@ Limit the output video's maximum height or width. If the resulting height or wid
 
 #### `config.mediaBaseFilepath`
 
-Where videos (both originals and transcoded ones) should be stored. Usually, a directory where assets are stored. Should be readable/writable for nginx. 
+Where videos (both originals and transcoded ones) should be stored. Usually, a directory where assets are stored. Should be readable/writable for nginx.
 
 #### `config.minimumTranscodedFileSize`
 
 Minimum required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1KB).
 
-During the transcoding, errors may occur and ffmpeg sometimes leaves corrupt files on the FS. Those are usually either 0B or just a few bytes of header. Luamp will delete those that are less than `minimumTranscodedFileSize` bytes. 
+During the transcoding, errors may occur and ffmpeg sometimes leaves corrupt files on the FS. Those are usually either 0B or just a few bytes of header. Luamp will delete those that are less than `minimumTranscodedFileSize` bytes.
 
 #### `config.serveOriginalOnTranscodeFailure`
 
@@ -353,10 +373,10 @@ nginx-lua-mp4 $ diff config.lua config.lua.example
 < config.logTime = true
 ---
 > config.logTime = false
-> 
+>
 > -- top limit for output video height (default 4k UHD)
 > config.maxHeight = 2160
-> 
+>
 > -- top limit for output video width (default 4k UHD)
 > config.maxWidth = 3840
 
@@ -379,13 +399,13 @@ You can now just copy and paste these lines above the `return config` in `config
 ### `b` — Background
 
 Available values:
- - `blurred` — when padding is enabled (with `c_pad` or `c_lpad`), the padding box will contain an upscaled blurred video.
+- `blurred` — when padding is enabled (with `c_pad` or `c_lpad`), the padding box will contain an upscaled blurred video.
 
 ### `c` — Crop
 
 Available values:
- - `pad` — when resizing a video, aspect ratio will be preserved and padding box will be added to keep the aspect ratio. 
- - `lpad` — same as `pad` but original video will **not** be scaled up.
+- `pad` — when resizing a video, aspect ratio will be preserved and padding box will be added to keep the aspect ratio.
+- `lpad` — same as `pad` but original video will **not** be scaled up.
 
 ### `dpr` — Device Pixel Ratio
 
@@ -401,12 +421,12 @@ Available values: integer number.
 
 ### `x` — X coordinate for overlay with `[limited_]padding` crop
 
-Available values: 
+Available values:
 - integer number for pixels
 - decimal number in range `(0, 1)` for percentage: 0.25 is 25% of resulting width (after DPR is applied)
 
 ### `y` — Y coordinate for overlay with `[limited_]padding` crop
 
-Available values: 
+Available values:
 - integer number for pixels
 - decimal number in range `(0, 1)` for percentage: 0.25 is 25% of resulting height (after DPR is applied)

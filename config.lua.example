@@ -6,6 +6,9 @@ config = {}
 -- `which ffmpeg`
 config.ffmpeg = '/usr/local/bin/ffmpeg'
 
+-- `which magick`
+config.magick = '/usr/bin/magick'
+
 -- where to save original and transcoded files (trailing slash required)
 config.mediaBaseFilepath = '/tmp/nginx/'
 
@@ -30,14 +33,15 @@ config.flagValueDelimiter = '_'
 -- some flags in use on the front end. Customize the left part of the table.
 -- eg `['cropping'] = 'crop'` to use `cropping` instead of the default `c`
 config.flagMap = {
-    ['c'] = 'crop', -- crop / scale
-    ['b'] = 'background',
-    ['dpr'] = 'dpr', -- DPR, https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
-    -- ['f'] = 'format',
-    ['h'] = 'height',
-    ['w'] = 'width',
-    ['x'] = 'x',
-    ['y'] = 'y',
+    c = 'crop',  -- crop / scale
+    b = 'background',
+    dpr = 'dpr', -- DPR, https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
+    -- f = 'format',
+    g = 'gravity',
+    h = 'height',
+    w = 'width',
+    x = 'x',
+    y = 'y',
 }
 
 -- override URL flag values. Useful when you migrate from another transcoding solution and already have
@@ -45,9 +49,31 @@ config.flagMap = {
 -- eg `['padded'] = 'pad'` to use `padded` instead of the default `pad`
 -- Also, all flag values not present in this table will be considered (and cast to) a number
 config.flagValueMap = {
-    ['pad'] = 'padding',
-    ['lpad'] = 'limited_padding',
-    ['blurred'] = 'blur',
+    blurred = 'blur',
+    -- crop params
+    pad = 'padding',
+    lpad = 'limited_padding',
+    fill = 'fill',
+    -- background params
+    black = 'black',
+    white = 'white',
+    red = 'red',
+    green = 'green',
+    blue = 'blue',
+    yellow = 'yellow',
+    cyan = 'cyan',
+    magenta = 'magenta',
+    gray = 'gray',
+    -- gravity params
+    northwest = 'northwest',
+    north = 'north',
+    northeast = 'northeast',
+    west = 'west',
+    center = 'center',
+    east = 'east',
+    southwest = 'southwest',
+    south = 'south',
+    southeast = 'southeast',
 }
 
 -- log transcoding process. Useful when doing initial setup or debugging issues
@@ -68,10 +94,16 @@ config.ffmpegDevNull = '2> /dev/null' -- nix
 config.logTime = false
 
 -- top limit for output video height (default 4k UHD)
-config.maxHeight = 2160
+config.maxVideoHeight = 2160
 
 -- top limit for output video width (default 4k UHD)
-config.maxWidth = 3840
+config.maxVideoWidth = 3840
+
+-- top limit for output image height
+config.maxImageHeight = 2160
+
+-- top limit for output image width
+config.maxImageWidth = 3840
 
 -- customize this function to preprocess flags or their values
 -- return values should contain values that are present in `config.flagMap` and `config.flagValueMap`
@@ -88,10 +120,25 @@ config.serveOriginalOnTranscodeFailure = true
 -- least required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1KB)
 config.minimumTranscodedFileSize = 1024
 
+-- least required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1B)
+config.minimumTranscodedImageSize = 1
+
 -- encoding preset to use https://trac.ffmpeg.org/wiki/Encode/H.264
 config.ffmpegPreset = ''
 -- config.ffmpegPreset = 'ultrafast'
 -- config.ffmpegPreset = 'superfast'
 -- config.ffmpegPreset = 'veryfast'
+
+-- Set missing config options to the defaults
+---@generic T: table, K, V
+---@param defaults T
+function config.setDefaults(defaults)
+    for o, v in pairs(defaults) do
+        if config[o] == nil then
+            log('setting default config for ' .. o)
+            config[o] = v
+        end
+    end
+end
 
 return config
