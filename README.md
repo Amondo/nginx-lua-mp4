@@ -37,6 +37,7 @@ https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-8
   - 🚧 webm support (output)
 
 ## Requirements
+
 - OpenResty or nginx with ngx_http_lua_module enabled
 - [ffmpeg 5](https://launchpad.net/~savoury1/+archive/ubuntu/ffmpeg5) installed
 - [time](https://en.wikipedia.org/wiki/Time_(Unix)) utility if you have `config.logTime` enabled
@@ -246,7 +247,7 @@ $ which ffmpeg
 
 Where to redirect `ffmpeg` output if `config.logFfmpegOutput` is set to false.
 
-For \*nix (default value):
+For *nix (default value):
 ```
 config.ffmpegDevNull = '2> /dev/null' -- nix
 ```
