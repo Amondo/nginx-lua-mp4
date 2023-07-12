@@ -211,7 +211,7 @@ convertCommand = convertCommand .. ' -size $(identify -ping -format "%wx%h" ' ..
 if background == 'auto' then
   -- Get 2 dominant colors in format 'x000000-x000000'
   local cmd = config.magick .. ' ' .. originalFilepath ..
-      ' -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
+      ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
 
   local dominantColors = utils.captureCommandOutput(cmd)
 
@@ -227,27 +227,27 @@ if width or height then
   if crop == 'padding' then
     convertCommand = convertCommand ..
         ' -resize ' .. dimensions .. resizeFlag .. ' ' ..
-        originalFilepath .. ' -resize ' .. dimensions ..
+        originalFilepath .. ' -modulate 100,120,100' .. ' -resize ' .. dimensions ..
         ' -composite'
   end
 
   if crop == 'limited_padding' then
     convertCommand = convertCommand ..
         ' -resize ' .. dimensions .. resizeFlag .. ' ' ..
-        originalFilepath .. ' -resize ' .. dimensions .. '\\>' ..
+        originalFilepath .. ' -modulate 100,120,100' .. ' -resize ' .. dimensions .. '\\>' ..
         ' -composite'
   end
 
   if crop == 'fill' then
     convertCommand = convertCommand .. ' ' ..
-        originalFilepath .. ' -resize ' .. dimensions .. '^' ..
+        originalFilepath .. ' -modulate 100,120,100' .. ' -resize ' .. dimensions .. '^' ..
         ' -composite' ..
         ' -crop ' .. dimensions .. '+' .. x .. '+' .. y
   end
 
   if crop == nil then
     convertCommand = convertCommand .. ' ' ..
-        originalFilepath ..
+        originalFilepath .. ' -modulate 100,120,100' ..
         ' -composite' ..
         ' -resize ' .. dimensions .. resizeFlag
   end
