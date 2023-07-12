@@ -31,4 +31,16 @@ function utils.fileExists(filepath)
   return false
 end
 
+-- Function to capture command output
+---@param cmd string
+---@return any
+function utils.captureCommandOutput(cmd)
+  local file = io.popen(cmd)
+  if file then
+    local output = file:read('*a')
+    file:close()
+    return output
+  end
+end
+
 return utils

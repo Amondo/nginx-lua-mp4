@@ -6,7 +6,6 @@ log('luamp started')
 
 -- Set missing config options to the defaults
 config.setDefaults({
-  minimumTranscodedImageSize = 1024,
   serveOriginalOnTranscodeFailure = true,
 })
 
@@ -25,37 +24,75 @@ log('filename: ' .. filename)
 local flags = {
   background = {
     enabled = true,
-    value = 'white'
+    default = 'white',
+    value = nil,
   },
   crop = {
     enabled = true,
-    value = nil
+    default = nil,
+    value = nil,
   },
   dpr = {
     enabled = true,
-    value = 1
+    default = 1,
+    value = nil,
   },
   gravity = {
     enabled = true,
-    value = 'center'
+    default = 'center',
+    value = nil,
   },
   height = {
     enabled = true,
-    value = nil
+    default = nil,
+    value = nil,
   },
   width = {
     enabled = true,
-    value = nil
+    default = nil,
+    value = nil,
   },
   x = {
     enabled = true,
-    value = 0
+    default = 0,
+    value = nil,
   },
   y = {
     enabled = true,
-    value = 0
-  }
+    default = 0,
+    value = nil,
+  },
 }
+-- Get flag value
+---@param f string
+---@return any?
+local function getFlagValue(f)
+  return flags[f].value or flags[f].default
+end
+
+-- Apply limits to a given dimension
+---@param d string|number|nil
+---@param dpr string|number|nil
+---@param maxValue string|number|nil
+---@return number?
+local function limitDimension(d, dpr, maxValue)
+  if d and dpr and maxValue then
+    local dNum = tonumber(d)
+    local dprNum = tonumber(dpr)
+    local maxValueNum = tonumber(maxValue)
+    local dimension = dNum and dprNum and math.ceil(dNum * dprNum)
+    if dimension and maxValueNum and dimension > maxValueNum then
+      log('Resulting dimension exceeds configured limit, capping it at ' .. maxValueNum)
+      return maxValueNum
+    end
+
+    return dimension
+  end
+
+  log('limitDimension: invalid params')
+  return nil
+end
+
 local flagsOrdered = {}
 
 -- Add the flag name to the ordered list
@@ -78,20 +115,6 @@ for flag, value in string.gmatch(luamp_flags, '(%w+)' .. config.flagValueDelimit
     -- Check if it is an allowed text flag or cast to a number
     flags[flagMapped].value = config.flagValueMap[value] or tonumber(value)
   end
-end
-
--- Apply limits to height and width if specified
-local maxImageHeight = config.maxImageHeight
-local maxImageWidth = config.maxImageWidth
-
-if flags.height.value and maxImageHeight and flags.height.value > maxImageHeight then
-  log('Resulting height exceeds configured limit, capping it at ' .. maxImageHeight)
-  flags.height.value = maxImageHeight
-end
-
-if flags.width.value and maxImageWidth and flags.width.value > maxImageWidth then
-  log('Resulting width exceeds configured limit, capping it at ' .. maxImageWidth)
-  flags.width.value = maxImageWidth
 end
 
 -- Coalesce flag values. All flag values are set at this moment
@@ -148,9 +171,13 @@ if not utils.fileExists(originalFilepath) then
       log('Downloaded original, saving')
       os.execute('mkdir -p ' .. originalDir)
       local originalFile = io.open(originalFilepath, 'w')
-      originalFile:write(originalReq.body)
-      originalFile:close()
-      log('Saved to ' .. originalFilepath)
+      if originalFile then
+        originalFile:write(originalReq.body)
+        originalFile:close()
+        log('Saved to ' .. originalFilepath)
+      else
+        log('File not found ' .. originalFilepath)
+      end
     else
       ngx.exit(ngx.HTTP_NOT_FOUND)
     end
@@ -164,41 +191,68 @@ log('Original is present on local FS. Transcoding to ' .. cachedFilepath)
 -- Create cached transcoded file
 os.execute('mkdir -p ' .. cacheDir)
 
--- Build the convert command
-local background = flags.background.value
-local crop = flags.crop.value
-local gravity = flags.gravity.value
-local height = flags.height.value and math.ceil(flags.height.value * flags.dpr.value)
-local width = flags.width.value and math.ceil(flags.width.value * flags.dpr.value)
-local x = flags.x.value
-local y = flags.y.value
-local convertCommand = config.magick ..
-    ' ' .. originalFilepath ..
-    ' -background ' .. background ..
-    ' -gravity ' .. gravity
+local background = getFlagValue('background')
+local crop = getFlagValue('crop')
+local gravity = getFlagValue('gravity')
+local x = getFlagValue('x')
+local y = getFlagValue('y')
+local dpr = getFlagValue('dpr')
+local width = limitDimension(getFlagValue('width'), dpr, config.maxImageHeight)
+local height = limitDimension(getFlagValue('height'), dpr, config.maxImageHeight)
 
-if crop and width and height then
-  if crop == 'fill' then
+local convertCommand = config.magick
+
+if gravity then
+  convertCommand = convertCommand .. ' -gravity ' .. gravity
+end
+
+-- Create Canvas
+if background == 'auto' then
+  local cmd = config.magick .. ' ' .. originalFilepath ..
+      ' -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
+
+  local dominantColors = utils.captureCommandOutput(cmd)
+
+  convertCommand = convertCommand ..
+      ' -size $(identify -ping -format "%wx%h" ' .. originalFilepath .. ')' ..
+      ' gradient:' .. dominantColors
+else
+  convertCommand = convertCommand ..
+      ' -size $(identify -ping -format "%wx%h" ' .. originalFilepath .. ')' ..
+      ' xc:' .. (background or '')
+end
+
+if width or height then
+  local dimensions = (width or '') .. 'x' .. (height or '')
+  local resizeFlag = (width and height and '!') or ''
+
+  if crop == 'padding' then
     convertCommand = convertCommand ..
-        ' -resize ' .. width .. 'x' .. height .. '^' ..
-        ' -crop ' .. width .. 'x' .. height .. '+' .. x .. '+' .. y
+        ' -resize ' .. dimensions .. resizeFlag .. ' ' ..
+        originalFilepath .. ' -resize ' .. dimensions ..
+        ' -composite'
   end
 
   if crop == 'limited_padding' then
     convertCommand = convertCommand ..
-        ' -resize ' .. '"' .. width .. 'x' .. height .. '>"' ..
-        ' -extent ' .. width .. 'x' .. height
+        ' -resize ' .. dimensions .. resizeFlag .. ' ' ..
+        originalFilepath .. ' -resize ' .. dimensions .. '\\>' ..
+        ' -composite'
   end
 
-  if crop == 'padding' then
-    convertCommand = convertCommand ..
-        ' -resize ' .. width .. 'x' .. height ..
-        ' -extent ' .. width .. 'x' .. height
+  if crop == 'fill' then
+    convertCommand = convertCommand .. ' ' ..
+        originalFilepath .. ' -resize ' .. dimensions .. '^' ..
+        ' -composite' ..
+        ' -crop ' .. dimensions .. '+' .. x .. '+' .. y
   end
-elseif width and height then
-  convertCommand = convertCommand .. ' -resize ' .. width .. 'x' .. height .. '!'
-elseif width or height then
-  convertCommand = convertCommand .. ' -resize ' .. (width or '') .. 'x' .. (height or '')
+
+  if crop == nil then
+    convertCommand = convertCommand .. ' ' ..
+        originalFilepath ..
+        ' -composite' ..
+        ' -resize ' .. dimensions .. resizeFlag
+  end
 end
 
 -- Append the output filepath to the convert command
@@ -221,27 +275,5 @@ if executeSuccess == nil then
   if config.serveOriginalOnTranscodeFailure == true then
     log('Serving original from: ' .. originalFilepath)
     ngx.exec('/luamp-cache', { luamp_cached_file_path = originalFilepath })
-  end
-else
-  -- Check if transcoded file is > minimumTranscodedImageSize
-  -- We do this inside the transcoding `if` block to not mess with other threads
-  local transcodedFile = io.open(cachedFilepath, 'rb')
-  local transcodedFileSize = transcodedFile:seek('end')
-  transcodedFile:close()
-
-  if transcodedFileSize > config.minimumTranscodedImageSize then
-    log('Transcoded version is good, serving it')
-    -- Serve it
-    ngx.exec('/luamp-cache', { luamp_cached_file_path = cachedFilepath })
-  else
-    log('Transcoded version is corrupt')
-    -- Delete corrupt one
-    os.remove(cachedFilepath)
-
-    -- Serve original
-    if config.serveOriginalOnTranscodeFailure == true then
-      log('Serving original')
-      ngx.exec('/luamp-cache', { luamp_cached_file_path = originalFilepath })
-    end
   end
 end
