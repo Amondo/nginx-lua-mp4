@@ -207,19 +207,17 @@ if gravity then
 end
 
 -- Create Canvas
+convertCommand = convertCommand .. ' -size $(identify -ping -format "%wx%h" ' .. originalFilepath .. ')'
 if background == 'auto' then
+  -- Get 2 dominant colors in format 'x000000-x000000'
   local cmd = config.magick .. ' ' .. originalFilepath ..
       ' -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
 
   local dominantColors = utils.captureCommandOutput(cmd)
 
-  convertCommand = convertCommand ..
-      ' -size $(identify -ping -format "%wx%h" ' .. originalFilepath .. ')' ..
-      ' gradient:' .. dominantColors
+  convertCommand = convertCommand .. ' gradient:' .. dominantColors
 else
-  convertCommand = convertCommand ..
-      ' -size $(identify -ping -format "%wx%h" ' .. originalFilepath .. ')' ..
-      ' xc:' .. (background or '')
+  convertCommand = convertCommand .. ' xc:' .. (background or '')
 end
 
 if width or height then
