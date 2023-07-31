@@ -1,3 +1,5 @@
+local Flag = require('flag')
+
 config = {}
 
 -- ########## CONFIG ##########
@@ -42,6 +44,19 @@ config.flagMap = {
     w = 'width',
     x = 'x',
     y = 'y',
+}
+
+config.flagVideoMap = config.flagMap
+
+config.flagImageMap = {
+    b = Flag.IMAGE_BACKGROUND_NAME,
+    c = Flag.IMAGE_CROP_NAME,
+    dpr = Flag.IMAGE_DPR_NAME,
+    g = Flag.IMAGE_GRAVITY_NAME,
+    x = Flag.IMAGE_X_NAME,
+    y = Flag.IMAGE_Y_NAME,
+    h = Flag.IMAGE_HEIGHT_NAME,
+    w = Flag.IMAGE_WIDTH_NAME,
 }
 
 -- override URL flag values. Useful when you migrate from another transcoding solution and already have
