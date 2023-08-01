@@ -38,21 +38,16 @@ function Flag:setValue(value, valueMapper)
 end
 
 -- Apply limits to a given dimension
----@param d number
 ---@param dpr number
 ---@param max number
----@return number?
-function Flag.limitDimension(d, dpr, max)
-  if d and dpr and max then
-    local dimension = d and dpr and math.ceil(d * dpr)
-    if dimension > max then
-      return max
+function Flag:scaleDimension(dpr, max)
+  if (self.name == Flag.IMAGE_HEIGHT_NAME or self.name == Flag.IMAGE_WIDTH_NAME) and self.value and dpr then
+    self.value = math.ceil(self.value * dpr)
+
+    if self.value > max then
+      self.value = max
     end
-
-    return dimension
   end
-
-  return nil
 end
 
 return Flag

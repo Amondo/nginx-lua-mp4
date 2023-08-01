@@ -116,6 +116,12 @@ local function main()
     end
   end
 
+  -- Scale dimensions with respect to limits
+  local maxHeight = (mediaType == File.IMAGE_TYPE and config.maxImageHeight) or config.maxVideoHeight
+  local maxWidth = (mediaType == File.IMAGE_TYPE and config.maxImageWidth) or config.maxVideoWidth
+  flags.height:scaleDimension(flags.dpr.value, maxHeight)
+  flags.width:scaleDimension(flags.dpr.value, maxWidth)
+
   local file = File.new(config, prefix, postfix, filename, mediaType, flags)
 
   -- Serve the cached file if it exists
