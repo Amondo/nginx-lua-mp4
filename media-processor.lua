@@ -81,6 +81,7 @@ local function main()
   local valueMapper = {}
 
   if mediaType == File.IMAGE_TYPE then
+    log('MediaType is image')
     flags = {
       background = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
       crop = Flag.new(Flag.IMAGE_CROP_NAME),
@@ -94,6 +95,7 @@ local function main()
     flagMapper = config.flagImageMap
     valueMapper = config.flagValueMap
   elseif mediaType == File.VIDEO_TYPE then
+    log('MediaType is video')
     flags = {}
     flagMapper = config.flagMap
     valueMapper = config.flagValueMap
