@@ -21,31 +21,35 @@ local function buildImageProcessingCommand(config, file, flags)
   local width = flags.width.value
   local height = flags.height.value
 
-  -- Create cached transcoded file
-  os.execute('mkdir -p ' .. cacheDir)
 
   -- Construct a command
-  local command = config.magick
-
-  if gravity then
-    command = command .. ' -gravity ' .. gravity
-  end
-
-  -- Create Canvas
-  command = command .. ' -size $(identify -ping -format "%wx%h" ' .. originalFilePath .. ')'
-  if background == 'auto' then
-    -- Get 2 dominant colors in format 'x000000-x000000'
-    local cmd = config.magick .. ' ' .. originalFilePath ..
-        ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
-
-    local dominantColors = utils.captureCommandOutput(cmd)
-
-    command = command .. ' gradient:' .. dominantColors
-  else
-    command = command .. ' xc:' .. (background or '')
-  end
-
+  local command
   if width or height then
+    -- Create cached transcoded file
+    os.execute('mkdir -p ' .. cacheDir)
+
+    --- Init with processor
+    command = config.magick
+
+    if gravity then
+      command = command .. ' -gravity ' .. gravity
+    end
+
+    -- Create Canvas
+    command = command .. ' -size $(identify -ping -format "%wx%h" ' .. originalFilePath .. ')'
+    if background == 'auto' then
+      -- Get 2 dominant colors in format 'x000000-x000000'
+      local cmd = config.magick .. ' ' .. originalFilePath ..
+          ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
+
+      local dominantColors = utils.captureCommandOutput(cmd)
+
+      command = command .. ' gradient:' .. dominantColors
+    else
+      command = command .. ' xc:' .. (background or '')
+    end
+
+    -- Crop and resize
     local dimensions = (width or '') .. 'x' .. (height or '')
     local resizeFlag = (width and height and '!') or ''
 
@@ -76,12 +80,12 @@ local function buildImageProcessingCommand(config, file, flags)
           ' -composite' ..
           ' -resize ' .. dimensions .. resizeFlag
     end
+
+    -- Append the output filepath to the convert command
+    command = command .. ' ' .. cachedFilePath
   end
 
-  -- Append the output filepath to the convert command
-  command = command .. ' ' .. cachedFilePath
-
-  if config.logTime then
+  if command and config.logTime then
     command = 'time ' .. command
   end
 
@@ -129,7 +133,7 @@ end
 -- Execute command
 ---@return boolean?
 function Command:execute()
-  if self.command ~= '' then
+  if self.command and self.command ~= '' then
     return os.execute(self.command)
   end
 end

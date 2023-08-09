@@ -146,8 +146,11 @@ local function main()
 
   log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
   local command = Command.new(config, file, flags)
-  log('Command: ' .. command.command)
-  local executeSuccess = command:execute()
+  local executeSuccess
+  if command.command then
+    log('Command: ' .. command.command)
+    executeSuccess = command:execute()
+  end
 
   if executeSuccess == nil then
     log('Transcode failed')
