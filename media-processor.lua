@@ -2,27 +2,22 @@ local config = require('config')
 local Flag = require('flag')
 local File = require('file')
 local Command = require('command')
+local Logger = require('logger')
 local utils = require('utils')
 
--- Log function
----@param data any
-local function log(data)
-  if config.logEnabled then
-    ngx.log(config.logLevel, data)
-  end
-end
+local logger = Logger.new(config.logEnabled, config.logLevel)
 
 ---Proceed cached file
 ---@param file table
 local function proceedCashed(file)
-  log('Serving cached file: ' .. file.cachedFilePath)
+  logger:log('Serving cached file: ' .. file.cachedFilePath)
   ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
 end
 
 ---Proceed file on transcode failure
 ---@param file table
 local function proceedOnTranscodeFailure(file)
-  log('Serving original from: ' .. file.originalFilePath)
+  logger:log('Serving original from: ' .. file.originalFilePath)
   ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
 end
 
@@ -32,29 +27,29 @@ end
 ---@param file table
 local function downloadOriginals(prefix, postfix, file)
   local originalsUpstreamPath = config.getOriginalsUpstreamPath(prefix, postfix, file.filename)
-  log('Downloading original from ' .. originalsUpstreamPath)
+  logger:log('Downloading original from ' .. originalsUpstreamPath)
   ngx.req.discard_body() -- Clear body
 
-  log('Fetching')
+  logger:log('Fetching')
   local originalReq = ngx.location.capture('/luamp-upstream',
     { vars = { luamp_original_file = originalsUpstreamPath } })
-  log('Upstream status: ' .. originalReq.status)
+  logger:log('Upstream status: ' .. originalReq.status)
 
   if originalReq.status == ngx.HTTP_OK and originalReq.body:len() > 0 then
-    log('Downloaded original, saving')
+    logger:log('Downloaded original, saving')
     os.execute('mkdir -p ' .. file.originalDir)
 
     local originalFile = io.open(file.originalFilePath, 'w')
     originalFile:write(originalReq.body)
     originalFile:close()
-    log('Saved to ' .. file.originalFilePath)
+    logger:log('Saved to ' .. file.originalFilePath)
   else
     ngx.exit(ngx.HTTP_NOT_FOUND)
   end
 end
 
 local function main()
-  log('luamp started')
+  logger:log('luamp started')
 
   -- Set missing config options to the defaults
   config.setDefaults({
@@ -70,11 +65,11 @@ local function main()
   local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
   local filename = utils.cleanupPath(ngx.var.luamp_filename)
 
-  log('media type: ' .. mediaType)
-  log('prefix: ' .. prefix)
-  log('flags: ' .. luamp_flags)
-  log('postfix: ' .. postfix)
-  log('filename: ' .. filename)
+  logger:log('media type: ' .. mediaType)
+  logger:log('prefix: ' .. prefix)
+  logger:log('flags: ' .. luamp_flags)
+  logger:log('postfix: ' .. postfix)
+  logger:log('filename: ' .. filename)
 
   local flags = {}
   local flagMapper = {}
@@ -130,11 +125,11 @@ local function main()
   end
 
   -- If the cached file doesn't exist, process the original file
-  log('Cached file not found: ' .. file.cachedFilePath)
+  logger:log('Cached file not found: ' .. file.cachedFilePath)
 
   -- Check if the original file exists
   if not file:hasOriginal() then
-    log('Original file not found: ' .. file.originalFilePath)
+    logger:log('Original file not found: ' .. file.originalFilePath)
 
     if config.downloadOriginals then
       -- Download original if upstream download is enabled
@@ -144,16 +139,16 @@ local function main()
     end
   end
 
-  log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
+  logger:log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
   local command = Command.new(config, file, flags)
   local executeSuccess
   if command.command then
-    log('Command: ' .. command.command)
+    logger:log('Command: ' .. command.command)
     executeSuccess = command:execute()
   end
 
   if executeSuccess == nil then
-    log('Transcode failed')
+    logger:log('Transcode failed')
 
     if config.serveOriginalOnTranscodeFailure == true then
       proceedOnTranscodeFailure(file)
