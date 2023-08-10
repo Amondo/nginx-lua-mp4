@@ -1,7 +1,7 @@
 local Flag = require('flag')
 local Logger = require('logger')
 
-config = {}
+local config = {}
 
 -- ########## CONFIG ##########
 -- change according to your needs
