@@ -1,7 +1,7 @@
 local Flag = require('flag')
-local Logger = require('logger')
+local log = require('log')
 
-local config = {}
+config = {}
 
 -- ########## CONFIG ##########
 -- change according to your needs
@@ -143,15 +143,13 @@ config.ffmpegPreset = ''
 -- config.ffmpegPreset = 'superfast'
 -- config.ffmpegPreset = 'veryfast'
 
-local logger = Logger.new(config.logEnabled, config.logLevel)
-
 -- Set missing config options to the defaults
 ---@generic T: table, K, V
 ---@param defaults T
 function config.setDefaults(defaults)
     for o, v in pairs(defaults) do
         if config[o] == nil then
-            logger:log('Setting default config for ' .. o)
+            log('Setting default config for ' .. o)
             config[o] = v
         end
     end

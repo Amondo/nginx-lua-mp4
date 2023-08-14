@@ -2,22 +2,20 @@ local config = require('config')
 local Flag = require('flag')
 local File = require('file')
 local Command = require('command')
-local Logger = require('logger')
+local log = require('log')
 local utils = require('utils')
-
-local logger = Logger.new(config.logEnabled, config.logLevel)
 
 ---Proceed cached file
 ---@param file table
 local function proceedCashed(file)
-  logger:log('Serving cached file: ' .. file.cachedFilePath)
+  log('Serving cached file: ' .. file.cachedFilePath)
   ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
 end
 
 ---Proceed file on transcode failure
 ---@param file table
 local function proceedOnTranscodeFailure(file)
-  logger:log('Serving original from: ' .. file.originalFilePath)
+  log('Serving original from: ' .. file.originalFilePath)
   ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
 end
 
@@ -27,29 +25,29 @@ end
 ---@param file table
 local function downloadOriginals(prefix, postfix, file)
   local originalsUpstreamPath = config.getOriginalsUpstreamPath(prefix, postfix, file.filename)
-  logger:log('Downloading original from ' .. originalsUpstreamPath)
+  log('Downloading original from ' .. originalsUpstreamPath)
   ngx.req.discard_body() -- Clear body
 
-  logger:log('Fetching')
+  log('Fetching')
   local originalReq = ngx.location.capture('/luamp-upstream',
     { vars = { luamp_original_file = originalsUpstreamPath } })
-  logger:log('Upstream status: ' .. originalReq.status)
+  log('Upstream status: ' .. originalReq.status)
 
   if originalReq.status == ngx.HTTP_OK and originalReq.body:len() > 0 then
-    logger:log('Downloaded original, saving')
+    log('Downloaded original, saving')
     os.execute('mkdir -p ' .. file.originalDir)
 
     local originalFile = io.open(file.originalFilePath, 'w')
     originalFile:write(originalReq.body)
     originalFile:close()
-    logger:log('Saved to ' .. file.originalFilePath)
+    log('Saved to ' .. file.originalFilePath)
   else
     ngx.exit(ngx.HTTP_NOT_FOUND)
   end
 end
 
 local function main()
-  logger:log('luamp started')
+  log('luamp started')
 
   -- Set missing config options to the defaults
   config.setDefaults({
@@ -65,17 +63,18 @@ local function main()
   local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
   local filename = utils.cleanupPath(ngx.var.luamp_filename)
 
-  logger:log('media type: ' .. mediaType)
-  logger:log('prefix: ' .. prefix)
-  logger:log('flags: ' .. luamp_flags)
-  logger:log('postfix: ' .. postfix)
-  logger:log('filename: ' .. filename)
+  log('media type: ' .. mediaType)
+  log('prefix: ' .. prefix)
+  log('flags: ' .. luamp_flags)
+  log('postfix: ' .. postfix)
+  log('filename: ' .. filename)
 
   local flags = {}
   local flagMapper = {}
   local valueMapper = {}
 
   if mediaType == File.IMAGE_TYPE then
+    log('MediaType is image')
     flags = {
       background = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
       crop = Flag.new(Flag.IMAGE_CROP_NAME),
@@ -89,6 +88,7 @@ local function main()
     flagMapper = config.flagImageMap
     valueMapper = config.flagValueMap
   elseif mediaType == File.VIDEO_TYPE then
+    log('MediaType is video')
     flags = {}
     flagMapper = config.flagMap
     valueMapper = config.flagValueMap
@@ -125,11 +125,11 @@ local function main()
   end
 
   -- If the cached file doesn't exist, process the original file
-  logger:log('Cached file not found: ' .. file.cachedFilePath)
+  log('Cached file not found: ' .. file.cachedFilePath)
 
   -- Check if the original file exists
   if not file:hasOriginal() then
-    logger:log('Original file not found: ' .. file.originalFilePath)
+    log('Original file not found: ' .. file.originalFilePath)
 
     if config.downloadOriginals then
       -- Download original if upstream download is enabled
@@ -139,16 +139,16 @@ local function main()
     end
   end
 
-  logger:log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
+  log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
   local command = Command.new(config, file, flags)
   local executeSuccess
   if command.command then
-    logger:log('Command: ' .. command.command)
+    log('Command: ' .. command.command)
     executeSuccess = command:execute()
   end
 
   if executeSuccess == nil then
-    logger:log('Transcode failed')
+    log('Transcode failed')
 
     if config.serveOriginalOnTranscodeFailure == true then
       proceedOnTranscodeFailure(file)

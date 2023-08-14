@@ -1,10 +1,8 @@
 local config = require('config')
+local log = require('log')
 local utils = require('utils')
-local Logger = require('logger')
 
-local logger = Logger.new(config.logEnabled, config.logLevel)
-
-logger:log('luamp started')
+log('luamp started')
 
 -- Set missing config options to the defaults
 config.setDefaults({
@@ -19,10 +17,10 @@ local flags = ngx.var.luamp_flags
 local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
 local filename = utils.cleanupPath(ngx.var.luamp_filename)
 
-logger:log('prefix: ' .. prefix)
-logger:log('flags: ' .. flags)
-logger:log('postfix: ' .. postfix)
-logger:log('filename: ' .. filename)
+log('prefix: ' .. prefix)
+log('flags: ' .. flags)
+log('postfix: ' .. postfix)
+log('filename: ' .. filename)
 
 -- Initialize flag-related variables
 local flagValues = {}
@@ -46,7 +44,7 @@ for flag, value in string.gmatch(flags, '(%w+)' .. config.flagValueDelimiter .. 
         if config.flagPreprocessHook ~= nil then
             flag, value = config.flagPreprocessHook(flag, value)
         end
-        logger:log(config.flagMap[flag] .. ' ' .. value)
+        log(config.flagMap[flag] .. ' ' .. value)
         -- Add the flag to the ordered list
         table.insert(flagOrdered, config.flagMap[flag])
         -- Check if it is an allowed text flag or cast to a number
@@ -86,37 +84,37 @@ end
 -- check if we already have cached version of a file
 local cachedFilepath = config.mediaBaseFilepath .. (prefix or '') .. (optionsPath or '') .. (postfix or '')
 local originalFilepath = config.mediaBaseFilepath .. (prefix or '') .. (postfix or '')
-logger:log('checking for cached transcoded version at: ' .. cachedFilepath .. filename)
+log('checking for cached transcoded version at: ' .. cachedFilepath .. filename)
 local cachedFile = io.open(cachedFilepath .. filename, 'r')
 
 if cachedFile == nil then
-    logger:log('no cached file')
+    log('no cached file')
     -- create cached version
 
     -- check if we have original file to transcode
-    logger:log('checking for original version at: ' .. originalFilepath .. filename)
+    log('checking for original version at: ' .. originalFilepath .. filename)
     local originalFileCheck = io.open(originalFilepath .. filename)
 
     -- check if we have original
     if not originalFileCheck then
-        logger:log('no original')
+        log('no original')
         if config.downloadOriginals then
             -- download original, if upstream download is enabled
-            logger:log('downloading original from ' .. config.getOriginalsUpstreamPath(prefix, postfix, filename))
+            log('downloading original from ' .. config.getOriginalsUpstreamPath(prefix, postfix, filename))
             -- clear body
             ngx.req.discard_body()
-            logger:log('fetching')
+            log('fetching')
             -- fetch
             local originalReq = ngx.location.capture('/luamp-upstream',
                 { vars = { luamp_original_file = config.getOriginalsUpstreamPath(prefix, postfix, filename) } })
-            logger:log('upstream status: ' .. originalReq.status)
+            log('upstream status: ' .. originalReq.status)
             if originalReq.status == ngx.HTTP_OK and originalReq.body:len() > 0 then
-                logger:log('downloaded original, saving')
+                log('downloaded original, saving')
                 os.execute('mkdir -p ' .. originalFilepath)
                 local originalFile = io.open(originalFilepath .. filename, 'w')
                 originalFile:write(originalReq.body)
                 originalFile:close()
-                logger:log('saved to ' .. originalFilepath .. filename)
+                log('saved to ' .. originalFilepath .. filename)
             else
                 ngx.exit(ngx.HTTP_NOT_FOUND)
             end
@@ -124,13 +122,13 @@ if cachedFile == nil then
             ngx.exit(ngx.HTTP_NOT_FOUND)
         end
     else
-        logger:log('original is present on local FS')
+        log('original is present on local FS')
         originalFileCheck:close()
     end
 
     -- process DPR
     if (flagValues['dpr'] ~= nil) then
-        logger:log('before DPR calculation, w: ' ..
+        log('before DPR calculation, w: ' ..
             (flagValues['width'] or 'nil') ..
             ', h: ' ..
             (flagValues['height'] or 'nil') ..
@@ -150,7 +148,7 @@ if cachedFile == nil then
         if flagValues['y'] ~= nil and flagValues['y'] >= 1 then
             flagValues['y'] = flagValues['y'] * flagValues['dpr']
         end
-        logger:log('after DPR calculation, w: ' ..
+        log('after DPR calculation, w: ' ..
             (flagValues['width'] or 'nil') ..
             ', h: ' ..
             (flagValues['height'] or 'nil') ..
@@ -159,14 +157,14 @@ if cachedFile == nil then
 
     if config.maxVideoHeight ~= nil and flagValues['height'] ~= nil then
         if flagValues['height'] > config.maxVideoHeight then
-            logger:log('resulting height exceeds configured limit, capping it at ' .. config.maxVideoHeight)
+            log('resulting height exceeds configured limit, capping it at ' .. config.maxVideoHeight)
             flagValues['height'] = config.maxVideoHeight
         end
     end
 
     if config.maxVideoWidth ~= nil and flagValues['width'] ~= nil then
         if flagValues['width'] > config.maxVideoWidth then
-            logger:log('resulting width exceeds configured limit, capping it at ' .. config.maxVideoWidth)
+            log('resulting width exceeds configured limit, capping it at ' .. config.maxVideoWidth)
             flagValues['width'] = config.maxVideoWidth
         end
     end
@@ -174,21 +172,21 @@ if cachedFile == nil then
     -- calculate absolute x/y for values in (0, 1) range
     if flagValues['x'] ~= nil and flagValues['x'] > 0 and flagValues['x'] < 1 then
         flagValues['x'] = flagValues['x'] * flagValues['width']
-        logger:log('absolute x: ' .. flagValues['x'])
+        log('absolute x: ' .. flagValues['x'])
     end
     if flagValues['y'] ~= nil and flagValues['y'] > 0 and flagValues['y'] < 1 then
         flagValues['y'] = flagValues['y'] * flagValues['height']
-        logger:log('absolute y: ' .. flagValues['y'])
+        log('absolute y: ' .. flagValues['y'])
     end
 
     local preset = ''
     -- setting x264 preset
     if (config['ffmpegPreset'] ~= '') then
-        logger:log('x264 preset: ' .. config['ffmpegPreset'])
+        log('x264 preset: ' .. config['ffmpegPreset'])
         preset = ' -preset ' .. config['ffmpegPreset'] .. ' '
     end
 
-    logger:log('transcoding to ' .. cachedFilepath .. filename)
+    log('transcoding to ' .. cachedFilepath .. filename)
 
     -- create cached transcoded file
     os.execute('mkdir -p ' .. cachedFilepath)
@@ -347,15 +345,15 @@ if cachedFile == nil then
         if config.logTime then
             command = 'time ' .. command
         end
-        logger:log('ffmpeg command: ' .. command)
+        log('ffmpeg command: ' .. command)
         executeSuccess = os.execute(command)
     end
 
     if executeSuccess == nil then
-        logger:log('transcode failed')
+        log('transcode failed')
 
         if config.serveOriginalOnTranscodeFailure == true then
-            logger:log('serving original from: ' .. originalFilepath .. filename)
+            log('serving original from: ' .. originalFilepath .. filename)
             ngx.exec('/luamp-cache', { luamp_cached_file_path = originalFilepath .. filename })
         end
     else
@@ -366,23 +364,23 @@ if cachedFile == nil then
         transcodedFile:close()
 
         if transcodedFileSize > config.minimumTranscodedVideoSize then
-            logger:log('transcoded version is good, serving it')
+            log('transcoded version is good, serving it')
             -- serve it
             ngx.exec('/luamp-cache', { luamp_cached_file_path = cachedFilepath .. filename })
         else
-            logger:log('transcoded version is corrupt')
+            log('transcoded version is corrupt')
             -- delete corrupt one
             os.remove(cachedFilepath .. filename)
 
             -- serve original
             if config.serveOriginalOnTranscodeFailure == true then
-                logger:log('serving original')
+                log('serving original')
                 ngx.exec('/luamp-cache', { luamp_cached_file_path = originalFilepath .. filename })
             end
         end
     end
 else
-    logger:log('found previously transcoded version, serving it')
+    log('found previously transcoded version, serving it')
     cachedFile:close()
 end
 
