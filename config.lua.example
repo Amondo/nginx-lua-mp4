@@ -149,7 +149,7 @@ config.ffmpegPreset = ''
 function config.setDefaults(defaults)
     for o, v in pairs(defaults) do
         if config[o] == nil then
-            log('setting default config for ' .. o)
+            log('Setting default config for ' .. o)
             config[o] = v
         end
     end

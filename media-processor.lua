@@ -2,15 +2,8 @@ local config = require('config')
 local Flag = require('flag')
 local File = require('file')
 local Command = require('command')
+local log = require('log')
 local utils = require('utils')
-
--- Log function
----@param data any
-local function log(data)
-  if config.logEnabled then
-    ngx.log(config.logLevel, data)
-  end
-end
 
 ---Proceed cached file
 ---@param file table
@@ -148,8 +141,11 @@ local function main()
 
   log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
   local command = Command.new(config, file, flags)
-  log('Command: ' .. command.command)
-  local executeSuccess = command:execute()
+  local executeSuccess
+  if command.command then
+    log('Command: ' .. command.command)
+    executeSuccess = command:execute()
+  end
 
   if executeSuccess == nil then
     log('Transcode failed')

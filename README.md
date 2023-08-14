@@ -82,6 +82,14 @@ location @luamp_process {
 
 # image location
 location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+    set $luamp_media_type "image";
+
+    #pass to transcoder location
+    try_files $uri @luamp_media_processor;
+}
+
+# image process/transcode location
+location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
@@ -90,13 +98,7 @@ location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_
     set $luamp_prefix "";
     set $luamp_postfix "";
 
-    #pass to transcoder location
-    try_files $uri @luamp_image_process;
-}
-
-# image process/transcode location
-location @luamp_image_process {
-    content_by_lua_file "/usr/local/openresty/nginx/nginx-lua-image.lua";
+    content_by_lua_file "/usr/local/openresty/nginx/media-processor.lua";
 }
 
 # cache location
