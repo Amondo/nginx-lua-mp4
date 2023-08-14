@@ -5,20 +5,6 @@ local Command = require('command')
 local log = require('log')
 local utils = require('utils')
 
----Proceed cached file
----@param file table
-local function proceedCashed(file)
-  log('Serving cached file: ' .. file.cachedFilePath)
-  ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
-end
-
----Proceed file on transcode failure
----@param file table
-local function proceedOnTranscodeFailure(file)
-  log('Serving original from: ' .. file.originalFilePath)
-  ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
-end
-
 ---Download original form upstream
 ---@param prefix string
 ---@param postfix string
@@ -47,7 +33,7 @@ local function downloadOriginals(prefix, postfix, file)
 end
 
 local function main()
-  log('luamp started')
+  log('Luamp started')
 
   -- Set missing config options to the defaults
   config.setDefaults({
@@ -63,18 +49,17 @@ local function main()
   local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
   local filename = utils.cleanupPath(ngx.var.luamp_filename)
 
-  log('media type: ' .. mediaType)
-  log('prefix: ' .. prefix)
-  log('flags: ' .. luamp_flags)
-  log('postfix: ' .. postfix)
-  log('filename: ' .. filename)
+  log('MediaType: ' .. mediaType)
+  log('Prefix: ' .. prefix)
+  log('Flags: ' .. luamp_flags)
+  log('Postfix: ' .. postfix)
+  log('Filename: ' .. filename)
 
   local flags = {}
   local flagMapper = {}
   local valueMapper = {}
 
   if mediaType == File.IMAGE_TYPE then
-    log('MediaType is image')
     flags = {
       background = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
       crop = Flag.new(Flag.IMAGE_CROP_NAME),
@@ -88,7 +73,6 @@ local function main()
     flagMapper = config.flagImageMap
     valueMapper = config.flagValueMap
   elseif mediaType == File.VIDEO_TYPE then
-    log('MediaType is video')
     flags = {}
     flagMapper = config.flagMap
     valueMapper = config.flagValueMap
@@ -121,7 +105,8 @@ local function main()
 
   -- Serve the cached file if it exists
   if file:isCached() then
-    proceedCashed(file)
+    log('Serving cached file: ' .. file.cachedFilePath)
+    ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
   end
 
   -- If the cached file doesn't exist, process the original file
@@ -151,8 +136,12 @@ local function main()
     log('Transcode failed')
 
     if config.serveOriginalOnTranscodeFailure == true then
-      proceedOnTranscodeFailure(file)
+      log('Serving original from: ' .. file.originalFilePath)
+      ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
     end
+  else
+    log('Transcoded version is good, serving it')
+    ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
   end
 end
 
