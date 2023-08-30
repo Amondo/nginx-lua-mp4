@@ -36,7 +36,7 @@ local function buildImageProcessingCommand(config, file, flags)
     end
 
     -- Create Canvas
-    command = command .. ' -size $(identify -ping -format "%wx%h" ' .. originalFilePath .. ')'
+    command = command .. ' -size $(' .. config.identify .. ' -ping -format "%wx%h" ' .. originalFilePath .. ')'
     if background == 'auto' then
       -- Get 2 dominant colors in format 'x000000-x000000'
       local cmd = config.magick .. ' ' .. originalFilePath ..
