@@ -12,6 +12,9 @@ config.ffmpeg = '/usr/local/bin/ffmpeg'
 -- `which magick`
 config.magick = '/usr/bin/magick'
 
+-- `which identify`
+config.identify = '/usr/bin/identify'
+
 -- where to save original and transcoded files (trailing slash required)
 config.mediaBaseFilepath = '/tmp/nginx/'
 
