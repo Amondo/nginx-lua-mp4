@@ -29,7 +29,7 @@ local function buildImageProcessingCommand(config, file, flags)
     os.execute('mkdir -p ' .. cacheDir)
 
     --- Init with processor
-    command = config.magick
+    command = config.magick .. ' -define png:exclude-chunks=date,time'
 
     if gravity then
       command = command .. ' -gravity ' .. gravity
