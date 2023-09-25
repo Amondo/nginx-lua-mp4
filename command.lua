@@ -80,11 +80,13 @@ local function buildImageProcessingCommand(config, file, flags)
           ' -resize ' .. dimensions .. resizeFlag
     end
 
+    -- Remove color profiles
     if config.stripColorProfile then
       command = command .. ' -strip'
     end
 
 
+    -- Apply selected color profile
     if config.colorProfilePath ~= '' and File.fileExists(config.colorProfilePath) then
       command = command .. ' -profile /home/nginx/sRGB.icc'
     end
