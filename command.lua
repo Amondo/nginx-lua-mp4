@@ -87,7 +87,7 @@ local function buildImageProcessingCommand(config, file, flags)
 
     -- Apply selected color profile
     if config.colorProfilePath ~= '' and File.fileExists(config.colorProfilePath) then
-      command = command .. ' -profile /home/nginx/sRGB.icc'
+      command = command .. ' -profile ' .. config.colorProfilePath
     end
 
     -- Append the output filepath to the convert command
