@@ -21,7 +21,6 @@ local function buildImageProcessingCommand(config, file, flags)
   local width = flags.width.value
   local height = flags.height.value
 
-
   -- Construct a command
   local command
   if width or height then
@@ -29,7 +28,7 @@ local function buildImageProcessingCommand(config, file, flags)
     os.execute('mkdir -p ' .. cacheDir)
 
     --- Init with processor
-    command = config.magick .. ' -define png:exclude-chunks=date,time'
+    command = config.magick .. ' -define png:exclude-chunks=date,time -quality 80'
 
     if gravity then
       command = command .. ' -gravity ' .. gravity
@@ -79,6 +78,16 @@ local function buildImageProcessingCommand(config, file, flags)
           originalFilePath .. ' -modulate 100,120,100' ..
           ' -composite' ..
           ' -resize ' .. dimensions .. resizeFlag
+    end
+
+    -- Remove color profiles
+    if config.stripColorProfile then
+      command = command .. ' -strip'
+    end
+
+    -- Apply selected color profile
+    if config.colorProfilePath ~= '' and File.fileExists(config.colorProfilePath) then
+      command = command .. ' -profile ' .. config.colorProfilePath
     end
 
     -- Append the output filepath to the convert command

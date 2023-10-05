@@ -21,6 +21,12 @@ config.mediaBaseFilepath = '/tmp/nginx/'
 -- set to `true` to enable originals download from the upstream/CDN. See `getOriginalsUpstreamUrl` below
 config.downloadOriginals = true
 
+-- remove image color profile on conversion
+config.stripColorProfile = true
+
+-- apply color profile if path is set
+config.colorProfilePath = 
+
 -- function to get a URL where originals are stored, when `downloadOriginals` set to true.
 function config.getOriginalsUpstreamPath(prefix, postfix, filename)
     -- return ngx.var.request_uri
