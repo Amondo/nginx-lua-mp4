@@ -3,17 +3,34 @@ local utils = require('utils')
 
 local Command = {}
 
+local function getBackgroundImage(config, file, flags)
+  local background = flags.background.value
+  local inputFilePath = file.originalFilePath
+  local backgroundImage = ''
+
+  if background == 'auto' then
+    -- Get 2 dominant colors in format 'x000000-x000000'
+    local cmd = config.magick .. ' ' .. inputFilePath ..
+        ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
+
+    local dominantColors = utils.captureCommandOutput(cmd)
+
+    backgroundImage = inputFilePath .. ' -size 100% gradient:' .. dominantColors .. ' -delete 0 '
+  elseif background == 'blurred' then
+    backgroundImage = inputFilePath .. ' -gravity center -crop 80%x80% +repage -blur 0x8 '
+  else
+    backgroundImage = inputFilePath .. ' -size 100% xc:' .. (background or '') .. ' -delete 0 '
+  end
+
+  return backgroundImage
+end
+
 -- Build image processing command
 ---@param config table
 ---@param file table
 ---@param flags table
 ---@return string
 local function buildImageProcessingCommand(config, file, flags)
-  local cacheDir = file.cacheDir
-  local cachedFilePath = file.cachedFilePath
-  local originalFilePath = file.originalFilePath
-
-  local background = flags.background.value
   local crop = flags.crop.value
   local gravity = flags.gravity.value
   local x = flags.x.value
@@ -22,62 +39,48 @@ local function buildImageProcessingCommand(config, file, flags)
   local height = flags.height.value
 
   -- Construct a command
-  local command
-  if width or height then
-    -- Create cached transcoded file
-    os.execute('mkdir -p ' .. cacheDir)
+  local inputFilePath = file.originalFilePath
+  local outputDir = file.cacheDir
+  local outputFilePath = file.cachedFilePath
 
-    --- Init with processor
-    command = config.magick .. ' -define png:exclude-chunks=date,time -quality 80'
+  local executorWithPreset = config.magick .. ' -define png:exclude-chunks=date,time -quality 80 '
+  local gravityCommand = (gravity and ' -gravity ' .. gravity .. ' ') or ''
+  local backgroundImage = getBackgroundImage(config, file, flags)
+  local foregroundImage = inputFilePath .. ' -modulate 100,120,100 '
+  local dimensions = (width or '') .. 'x' .. (height or '')
 
-    if gravity then
-      command = command .. ' -gravity ' .. gravity
-    end
+  local command = ''
 
-    -- Create Canvas
-    command = command .. ' -size $(' .. config.identify .. ' -ping -format "%wx%h" ' .. originalFilePath .. ')'
-    if background == 'auto' then
-      -- Get 2 dominant colors in format 'x000000-x000000'
-      local cmd = config.magick .. ' ' .. originalFilePath ..
-          ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
+  -- Gravity is optional only for 'fill', 'lpad' and 'pad' cropping
+  -- Background is optional only for 'lpad' and 'pad' cropping
+  if crop == 'fill' and (width or height) then
+    command =
+        executorWithPreset .. gravityCommand ..
+        foregroundImage .. ' -resize ' .. dimensions .. '^' .. ' -crop ' .. dimensions .. '+' .. x .. '+' .. y
+  elseif crop == 'limited_padding' and (width or height) then
+    command =
+        executorWithPreset .. gravityCommand ..
+        backgroundImage .. ' -resize ' .. dimensions .. '^' .. ' -crop ' .. dimensions .. '+0+0 ' ..
+        foregroundImage .. ' -resize ' .. dimensions .. '\\>' ..
+        ' -composite'
+  elseif crop == 'padding' and (width or height) then
+    command =
+        executorWithPreset .. gravityCommand ..
+        backgroundImage .. ' -resize ' .. dimensions .. '^' .. ' -crop ' .. dimensions .. '+0+0 ' ..
+        foregroundImage .. ' -resize ' .. dimensions ..
+        ' -composite'
+  elseif width or height then
+    local forceResizeFlag = (width and height and '! ') or ' '
+    command =
+        executorWithPreset ..
+        foregroundImage .. ' -resize ' .. dimensions .. forceResizeFlag
+  end
 
-      local dominantColors = utils.captureCommandOutput(cmd)
+  if command and command ~= '' then
+    os.execute('mkdir -p ' .. outputDir)
 
-      command = command .. ' gradient:' .. dominantColors
-    else
-      command = command .. ' xc:' .. (background or '')
-    end
-
-    -- Crop and resize
-    local dimensions = (width or '') .. 'x' .. (height or '')
-    local resizeFlag = (width and height and '!') or ''
-
-    if crop == 'padding' then
-      command = command ..
-          ' -resize ' .. dimensions .. resizeFlag .. ' ' ..
-          originalFilePath .. ' -modulate 100,120,100' .. ' -resize ' .. dimensions ..
-          ' -composite'
-    end
-
-    if crop == 'limited_padding' then
-      command = command ..
-          ' -resize ' .. dimensions .. resizeFlag .. ' ' ..
-          originalFilePath .. ' -modulate 100,120,100' .. ' -resize ' .. dimensions .. '\\>' ..
-          ' -composite'
-    end
-
-    if crop == 'fill' then
-      command = command .. ' ' ..
-          originalFilePath .. ' -modulate 100,120,100' .. ' -resize ' .. dimensions .. '^' ..
-          ' -composite' ..
-          ' -crop ' .. dimensions .. '+' .. x .. '+' .. y
-    end
-
-    if crop == nil then
-      command = command .. ' ' ..
-          originalFilePath .. ' -modulate 100,120,100' ..
-          ' -composite' ..
-          ' -resize ' .. dimensions .. resizeFlag
+    if config.logTime then
+      command = 'time ' .. command
     end
 
     -- Remove color profiles
@@ -90,12 +93,7 @@ local function buildImageProcessingCommand(config, file, flags)
       command = command .. ' -profile ' .. config.colorProfilePath
     end
 
-    -- Append the output filepath to the convert command
-    command = command .. ' ' .. cachedFilePath
-  end
-
-  if command and config.logTime then
-    command = 'time ' .. command
+    command = command .. ' ' .. outputFilePath
   end
 
   return command
