@@ -2,3 +2,7 @@
 .vscode
 .idea
 config.lua
+tests/originals
+tests/runfiles
+tests/links_image
+tests/links_video
