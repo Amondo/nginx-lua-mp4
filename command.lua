@@ -1,28 +1,28 @@
 local File = require('file')
+local Flag = require('flag')
 local utils = require('utils')
 
 local Command = {}
 
-local function getBackgroundImage(config, file, flags)
-  local background = flags.background.value
-  local inputFilePath = file.originalFilePath
-  local backgroundImage = ''
+local function getCanvas(config, file, flags)
+  local background = flags[Flag.IMAGE_BACKGROUND_NAME].value
+  local canvas = ''
 
   if background == 'auto' then
     -- Get 2 dominant colors in format 'x000000-x000000'
-    local cmd = config.magick .. ' ' .. inputFilePath ..
+    local cmd = config.magick .. ' ' .. file.originalFilePath ..
         ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
 
     local dominantColors = utils.captureCommandOutput(cmd)
 
-    backgroundImage = inputFilePath .. ' -size 100% gradient:' .. dominantColors .. ' -delete 0 '
+    canvas = file.originalFilePath .. ' -size %wx%h gradient:' .. dominantColors .. ' -delete 0 '
   elseif background == 'blurred' then
-    backgroundImage = inputFilePath .. ' -gravity center -crop 80%x80% +repage -blur 0x8 '
+    canvas = file.originalFilePath .. ' -crop 80%x80% +repage -blur 0x8 '
   else
-    backgroundImage = inputFilePath .. ' -size 100% xc:' .. (background or '') .. ' -delete 0 '
+    canvas = file.originalFilePath .. ' -size %wx%h xc:' .. (background or '') .. ' -delete 0 '
   end
 
-  return backgroundImage
+  return canvas
 end
 
 -- Build image processing command
@@ -31,53 +31,85 @@ end
 ---@param flags table
 ---@return string
 local function buildImageProcessingCommand(config, file, flags)
-  local crop = flags.crop.value
-  local gravity = flags.gravity.value
-  local x = flags.x.value
-  local y = flags.y.value
-  local width = flags.width.value
-  local height = flags.height.value
+  local crop = flags[Flag.IMAGE_CROP_NAME].value
+  local gravity = flags[Flag.IMAGE_GRAVITY_NAME].value
+  local x = flags[Flag.IMAGE_X_NAME].value
+  local y = flags[Flag.IMAGE_Y_NAME].value
+  local width = flags[Flag.IMAGE_WIDTH_NAME].value
+  local height = flags[Flag.IMAGE_HEIGHT_NAME].value
+  local radius = flags[Flag.IMAGE_RADIUS_NAME].value
+  local quality = flags[Flag.IMAGE_QUALITY_NAME].value
 
   -- Construct a command
-  local inputFilePath = file.originalFilePath
-  local outputDir = file.cacheDir
-  local outputFilePath = file.cachedFilePath
-
-  local executorWithPreset = config.magick .. ' -define png:exclude-chunks=date,time -quality 80 '
-  local gravityCommand = (gravity and ' -gravity ' .. gravity .. ' ') or ''
-  local backgroundImage = getBackgroundImage(config, file, flags)
-  local foregroundImage = inputFilePath .. ' -modulate 100,120,100 '
+  local command = ''
+  local executorWithPreset = config.magick ..
+      ' -define png:exclude-chunks=date,time' ..
+      ' -quality ' .. quality ..
+      ' -gravity ' .. gravity .. ' '
+  local canvas = getCanvas(config, file, flags)
+  local image = file.originalFilePath .. ' -modulate 100,120,100 '
+  local mask =
+      '-size %[origwidth]x%[origheight]' ..
+      ' xc:black' ..
+      ' -fill white' ..
+      ' -draw "roundrectangle 0,0,%[origwidth],%[origheight],' .. radius .. ',' .. radius .. '"' ..
+      ' -alpha Copy'
   local dimensions = (width or '') .. 'x' .. (height or '')
 
-  local command = ''
-
-  -- Gravity is optional only for 'fill', 'lpad' and 'pad' cropping
-  -- Background is optional only for 'lpad' and 'pad' cropping
   if crop == 'fill' and (width or height) then
-    command =
-        executorWithPreset .. gravityCommand ..
-        foregroundImage .. ' -resize ' .. dimensions .. '^' .. ' -crop ' .. dimensions .. '+' .. x .. '+' .. y
+    command = executorWithPreset ..
+        canvas ..
+        ' -resize ' .. dimensions .. '^' ..
+        ' -crop ' .. dimensions .. '+' .. x .. '+' .. y ..
+        ' \\( ' ..
+        image ..
+        ' -resize ' .. dimensions .. '^' ..
+        ' -crop ' .. dimensions .. '+' .. x .. '+' .. y ..
+        ' -set option:origwidth %w' ..
+        ' -set option:origheight %h' ..
+        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
+        ' \\) -compose over -composite'
   elseif crop == 'limited_padding' and (width or height) then
-    command =
-        executorWithPreset .. gravityCommand ..
-        backgroundImage .. ' -resize ' .. dimensions .. '^' .. ' -crop ' .. dimensions .. '+0+0 ' ..
-        foregroundImage .. ' -resize ' .. dimensions .. '\\>' ..
-        ' -composite'
+    command = executorWithPreset ..
+        canvas ..
+        ' -resize ' .. dimensions .. '^' ..
+        ' -crop ' .. dimensions .. '+0+0 ' ..
+        ' \\( ' ..
+        image ..
+        ' -resize ' .. dimensions .. '\\>' ..
+        ' -set option:origwidth %w' ..
+        ' -set option:origheight %h' ..
+        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
+        ' \\) -compose over -composite'
   elseif crop == 'padding' and (width or height) then
-    command =
-        executorWithPreset .. gravityCommand ..
-        backgroundImage .. ' -resize ' .. dimensions .. '^' .. ' -crop ' .. dimensions .. '+0+0 ' ..
-        foregroundImage .. ' -resize ' .. dimensions ..
-        ' -composite'
+    command = executorWithPreset ..
+        canvas ..
+        ' -resize ' .. dimensions .. '^' ..
+        ' -crop ' .. dimensions .. '+0+0 ' ..
+        ' \\( ' ..
+        image ..
+        ' -resize ' .. dimensions ..
+        ' -set option:origwidth %w' ..
+        ' -set option:origheight %h' ..
+        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
+        ' \\) -compose over -composite'
   elseif width or height then
-    local forceResizeFlag = (width and height and '! ') or ' '
-    command =
-        executorWithPreset ..
-        foregroundImage .. ' -resize ' .. dimensions .. forceResizeFlag
+    local forceResizeFlag = (width and height and '! ') or ''
+
+    command = executorWithPreset ..
+        canvas ..
+        ' -resize ' .. dimensions .. forceResizeFlag ..
+        ' \\( ' ..
+        image ..
+        ' -resize ' .. dimensions .. forceResizeFlag ..
+        ' -set option:origwidth %w' ..
+        ' -set option:origheight %h' ..
+        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
+        ' \\) -compose over -composite'
   end
 
   if command and command ~= '' then
-    os.execute('mkdir -p ' .. outputDir)
+    os.execute('mkdir -p ' .. file.cacheDir)
 
     if config.logTime then
       command = 'time ' .. command
@@ -93,7 +125,7 @@ local function buildImageProcessingCommand(config, file, flags)
       command = command .. ' -profile ' .. config.colorProfilePath
     end
 
-    command = command .. ' ' .. outputFilePath
+    command = command .. ' ' .. file.cachedFilePath
   end
 
   return command

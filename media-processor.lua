@@ -61,14 +61,16 @@ local function main()
 
   if mediaType == File.IMAGE_TYPE then
     flags = {
-      background = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
-      crop = Flag.new(Flag.IMAGE_CROP_NAME),
-      dpr = Flag.new(Flag.IMAGE_DPR_NAME),
-      gravity = Flag.new(Flag.IMAGE_GRAVITY_NAME),
-      x = Flag.new(Flag.IMAGE_X_NAME),
-      y = Flag.new(Flag.IMAGE_Y_NAME),
-      height = Flag.new(Flag.IMAGE_HEIGHT_NAME),
-      width = Flag.new(Flag.IMAGE_WIDTH_NAME)
+      [Flag.IMAGE_BACKGROUND_NAME] = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
+      [Flag.IMAGE_CROP_NAME] = Flag.new(Flag.IMAGE_CROP_NAME),
+      [Flag.IMAGE_DPR_NAME] = Flag.new(Flag.IMAGE_DPR_NAME),
+      [Flag.IMAGE_GRAVITY_NAME] = Flag.new(Flag.IMAGE_GRAVITY_NAME),
+      [Flag.IMAGE_X_NAME] = Flag.new(Flag.IMAGE_X_NAME),
+      [Flag.IMAGE_Y_NAME] = Flag.new(Flag.IMAGE_Y_NAME),
+      [Flag.IMAGE_HEIGHT_NAME] = Flag.new(Flag.IMAGE_HEIGHT_NAME),
+      [Flag.IMAGE_WIDTH_NAME] = Flag.new(Flag.IMAGE_WIDTH_NAME),
+      [Flag.IMAGE_RADIUS_NAME] = Flag.new(Flag.IMAGE_RADIUS_NAME),
+      [Flag.IMAGE_QUALITY_NAME] = Flag.new(Flag.IMAGE_QUALITY_NAME),
     }
     flagMapper = config.flagImageMap
     valueMapper = config.flagValueMap
@@ -98,8 +100,8 @@ local function main()
   -- Scale dimensions with respect to limits
   local maxHeight = (mediaType == File.IMAGE_TYPE and config.maxImageHeight) or config.maxVideoHeight
   local maxWidth = (mediaType == File.IMAGE_TYPE and config.maxImageWidth) or config.maxVideoWidth
-  flags.height:scaleDimension(flags.dpr.value, maxHeight)
-  flags.width:scaleDimension(flags.dpr.value, maxWidth)
+  flags[Flag.IMAGE_HEIGHT_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxHeight)
+  flags[Flag.IMAGE_WIDTH_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxWidth)
 
   local file = File.new(config, prefix, postfix, filename, mediaType, flags)
 

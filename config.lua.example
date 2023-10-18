@@ -64,6 +64,8 @@ config.flagImageMap = {
     y = Flag.IMAGE_Y_NAME,
     h = Flag.IMAGE_HEIGHT_NAME,
     w = Flag.IMAGE_WIDTH_NAME,
+    r = Flag.IMAGE_RADIUS_NAME,
+    q = Flag.IMAGE_QUALITY_NAME,
 }
 
 -- override URL flag values. Useful when you migrate from another transcoding solution and already have
