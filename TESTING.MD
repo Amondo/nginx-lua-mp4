@@ -1,4 +1,6 @@
-### **Prerequisites**
+### **Setup**
+
+Copy `test.config.example` into `test.config` and set parameters in it.
 
 For the script to work correctly, you must place two test files in the directory specified in the **`config.lua`** file under **`config.mediaBaseFilepath`**.
 

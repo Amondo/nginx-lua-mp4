@@ -6,3 +6,4 @@ tests/originals
 tests/runfiles
 tests/links_image
 tests/links_video
+tests/test.config

@@ -1,5 +1,4 @@
-HOST="http://localhost/"
-MEDIA_DIR="/tmp/nginx"
+source test.config
 CURRENT_DIR=$(pwd)
 VIDEO_FILE="leva_test_video_luamp_do_not_rename.mp4"
 IMAGE_FILE="leva_test_image_lua_do_not_rename"
