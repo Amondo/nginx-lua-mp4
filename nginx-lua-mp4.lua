@@ -88,7 +88,7 @@ end
 local cachedFilepath = config.mediaBaseFilepath ..
     mediaType .. '/' .. (prefix or '') .. (optionsPath or '') .. (postfix or '')
 local originalFilepath = config.mediaBaseFilepath ..
-    mediaType .. '/originals/' .. (prefix or '') .. (postfix or '')
+    mediaType .. '/original/' .. (prefix or '') .. (postfix or '')
 log('checking for cached transcoded version at: ' .. cachedFilepath .. filename)
 local cachedFile = io.open(cachedFilepath .. filename, 'r')
 

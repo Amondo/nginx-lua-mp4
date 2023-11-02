@@ -54,7 +54,7 @@ function File.new(config, prefix, postfix, publicId, extension, mediaType, flags
   self.filename = publicId .. '.' .. extension
   self.cacheDir = buildCacheDirPath(config.mediaBaseFilepath, prefix, postfix, flags, mediaType)
   self.cachedFilePath = self.cacheDir .. self.filename
-  self.originalDir = config.mediaBaseFilepath .. mediaType .. '/originals/' .. prefix .. postfix
+  self.originalDir = config.mediaBaseFilepath .. mediaType .. '/original/' .. prefix .. postfix
   self.originalFilePath = self.originalDir .. self.publicId .. '.*'
   setmetatable(self, { __index = File })
   return self
