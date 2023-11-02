@@ -45,15 +45,17 @@ local function main()
   -- Get URL params
   local mediaType = ngx.var.luamp_media_type
   local prefix = utils.cleanupPath(ngx.var.luamp_prefix)
-  local luamp_flags = ngx.var.luamp_flags
+  local luampFlags = ngx.var.luamp_flags
   local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
-  local filename = utils.cleanupPath(ngx.var.luamp_filename)
+  local publicId = utils.cleanupPath(ngx.var.luamp_public_id)
+  local extension = ngx.var.luamp_extension
 
   log('MediaType: ' .. mediaType)
   log('Prefix: ' .. prefix)
-  log('Flags: ' .. luamp_flags)
+  log('Flags: ' .. luampFlags)
   log('Postfix: ' .. postfix)
-  log('Filename: ' .. filename)
+  log('PublicId: ' .. publicId)
+  log('Extension: ' .. extension)
 
   local flags = {}
   local flagMapper = {}
@@ -83,7 +85,7 @@ local function main()
   end
 
   -- Parse flags into a table
-  for f, v in string.gmatch(luamp_flags, '(%w+)' .. config.flagValueDelimiter .. '([^' .. config.flagsDelimiter .. '\\/]+)' .. config.flagsDelimiter .. '*') do
+  for f, v in string.gmatch(luampFlags, '(%w+)' .. config.flagValueDelimiter .. '([^' .. config.flagsDelimiter .. '\\/]+)' .. config.flagsDelimiter .. '*') do
     -- Preprocess the flag and value if necessary
     if config.flagPreprocessHook then
       f, v = config.flagPreprocessHook(f, v)
@@ -103,7 +105,7 @@ local function main()
   flags[Flag.IMAGE_HEIGHT_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxHeight)
   flags[Flag.IMAGE_WIDTH_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxWidth)
 
-  local file = File.new(config, prefix, postfix, filename, mediaType, flags)
+  local file = File.new(config, prefix, postfix, publicId, extension, mediaType, flags)
 
   -- Serve the cached file if it exists
   if file:isCached() then

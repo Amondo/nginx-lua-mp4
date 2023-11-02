@@ -62,28 +62,26 @@ http {
 And here's minimal viable config for 4 locations you need to set up. These locations are described in the sections below:
 ```
 # video location
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
+location ~ ^/(?<luamp_media_type>(video))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_public_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_extension>(mp4))$ {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-
+    
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
 
     #pass to transcoder location
-    try_files $uri @luamp_process;
+    try_files $uri @luamp_video_process;
 }
 
-# process/transcode location
-location @luamp_process {
-    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
+# video process/transcode location
+location @luamp_video_process {
+    content_by_lua_file "/usr/local/openresty/nginx/nginx-lua-mp4.lua";
 }
 
 # image location
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
-    set $luamp_media_type "image";
-
+location ~ ^/(?<luamp_media_type>(image))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_public_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
     #pass to transcoder location
     try_files $uri @luamp_media_processor;
 }
@@ -93,7 +91,7 @@ location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-
+    
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
@@ -141,17 +139,16 @@ luamp_filename: new_year_boardgames_party.mp4
 If you do not need prefix and postfix, you can omit them from the regexp, but do make sure you `set` them to an empty string in the location. Here's the minimal viable example for simpler URLs with no prefix/postfix:
 
 ```
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
+location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-
+    
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
 
-    #pass to transcoder location
-    try_files $uri @luamp_process;
+    content_by_lua_file "/usr/local/openresty/nginx/media-processor.lua";
 }
 
 ```

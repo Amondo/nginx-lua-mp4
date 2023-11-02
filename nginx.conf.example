@@ -1,0 +1,73 @@
+
+user nginx;
+worker_processes  1;
+
+error_log  logs/error.log  info;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    lua_package_path "/usr/local/openresty/nginx/?.lua;;";
+
+    server {
+        listen       80;
+        
+        # video location
+        location ~ ^/(?<luamp_media_type>(video))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_public_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp|mp4))$ {
+            # these two are required to be set regardless
+            set $luamp_original_file "";
+            set $luamp_transcoded_file "";
+            
+            # these are needed to be set if you did not use them in regex matching location
+            set $luamp_prefix "";
+            set $luamp_postfix "";
+
+            #pass to transcoder location
+            try_files $uri @luamp_video_process;
+        }
+
+        # video process/transcode location
+        location @luamp_video_process {
+            content_by_lua_file "/usr/local/openresty/nginx/nginx-lua-mp4.lua";
+        }
+
+        # image location
+        location ~ ^/(?<luamp_media_type>(image))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_public_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+            #pass to transcoder location
+            try_files $uri @luamp_media_processor;
+        }
+
+        # image process/transcode location
+        location @luamp_media_processor {
+             # these two are required to be set regardless
+            set $luamp_original_file "";
+            set $luamp_transcoded_file "";
+            
+            # these are needed to be set if you did not use them in regex matching location
+            set $luamp_prefix "";
+            set $luamp_postfix "";
+
+            content_by_lua_file "/usr/local/openresty/nginx/media-processor.lua";
+        }
+
+        # cache location
+        location =/luamp-cache {
+            internal;
+            root /;
+            index off;
+            
+            set_unescape_uri $luamp_transcoded_file $arg_luamp_cached_file_path;
+
+            try_files $luamp_transcoded_file =404;
+        }
+
+        # upstream location
+        location =/luamp-upstream {
+            internal;
+            rewrite ^(.+)$ $luamp_original_file break;
+            proxy_pass "https://example.com";
+        }
+    }
+}

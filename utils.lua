@@ -14,10 +14,10 @@ end
 ---@param cmd string
 ---@return any
 function utils.captureCommandOutput(cmd)
-  local file = io.popen(cmd)
-  if file then
-    local output = file:read('*a')
-    file:close()
+  local handle = io.popen(cmd)
+  if handle then
+    local output = handle:read('*a')
+    handle:close()
     return output
   end
 end
