@@ -77,7 +77,7 @@ location ~ ^/(?<luamp_media_type>(video))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)
 
 # video process/transcode location
 location @luamp_video_process {
-    content_by_lua_file "/usr/local/openresty/nginx/nginx-lua-mp4.lua";
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
 }
 
 # image location
@@ -96,7 +96,7 @@ location @luamp_media_processor {
     set $luamp_prefix "";
     set $luamp_postfix "";
 
-    content_by_lua_file "/usr/local/openresty/nginx/media-processor.lua";
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 
 # cache location
@@ -148,7 +148,7 @@ location @luamp_media_processor {
     set $luamp_prefix "";
     set $luamp_postfix "";
 
-    content_by_lua_file "/usr/local/openresty/nginx/media-processor.lua";
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 
 ```
@@ -171,8 +171,8 @@ These sanitisation rules are enough to prevent shell injections and path travers
 Process location is pretty simple, it just passes execution to the LUA part of luamp module:
 
 ```
-location @luamp_process {
-    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
+location @luamp_media_processor {
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 ```
 
