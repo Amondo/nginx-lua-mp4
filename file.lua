@@ -19,9 +19,9 @@ end
 ---@param prefix string
 ---@param postfix string
 ---@param flags table
----@param mediaType string
+---@param type string
 ---@return string
-local function buildCacheDirPath(basePath, prefix, postfix, flags, mediaType)
+local function buildCacheDirPath(basePath, prefix, postfix, flags, type)
   local flagNamesOrdered = {}
 
   -- Add the flag name to the ordered list
@@ -32,7 +32,7 @@ local function buildCacheDirPath(basePath, prefix, postfix, flags, mediaType)
   table.sort(flagNamesOrdered)
 
   -- Generate the options path
-  local optionsPath = mediaType .. '/'
+  local optionsPath = type .. '/'
 
   for _, flagName in ipairs(flagNamesOrdered) do
     local pathFragment = coalesceFlag(flags[flagName])
@@ -45,17 +45,20 @@ local function buildCacheDirPath(basePath, prefix, postfix, flags, mediaType)
 end
 
 -- Base class method new
-function File.new(config, prefix, postfix, publicId, extension, mediaType, flags)
+function File.new(config, prefix, postfix, id, extension, type, flags)
   local self = {}
   self.config = config
-  self.mediaType = mediaType
-  self.publicId = publicId
+  self.id = id
+  self.type = type
   self.extension = extension
-  self.filename = publicId .. '.' .. extension
-  self.cacheDir = buildCacheDirPath(config.mediaBaseFilepath, prefix, postfix, flags, mediaType)
-  self.cachedFilePath = self.cacheDir .. self.filename
-  self.originalDir = config.mediaBaseFilepath .. mediaType .. '/original/' .. prefix .. postfix
-  self.originalFilePath = self.originalDir .. self.publicId .. '.*'
+  self.name = id .. '.' .. extension
+  self.originalDir = config.mediaBaseFilepath .. type .. '/original/' .. prefix .. postfix
+  self.originalFilePath = self.originalDir .. id .. '.*'
+  self.cacheDir = self.originalDir
+  if not utils.isTableEmpty(flags) then
+    self.cacheDir = buildCacheDirPath(config.mediaBaseFilepath, prefix, postfix, flags, type)
+  end
+  self.cachedFilePath = self.cacheDir .. self.name
   setmetatable(self, { __index = File })
   return self
 end
@@ -69,7 +72,7 @@ end
 ---Checks file has original
 ---@return boolean
 function File:hasOriginal()
-  local cmd = string.format("ls -1 %s | grep '%s'", self.originalDir, self.publicId .. '.*')
+  local cmd = string.format("ls -1 %s | grep '%s'", self.originalDir, self.id .. '.*')
   local result = utils.captureCommandOutput(cmd)
   return (result and result ~= "") or false
 end

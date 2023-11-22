@@ -16,9 +16,9 @@ local mediaType = ngx.var.luamp_media_type
 local prefix = utils.cleanupPath(ngx.var.luamp_prefix)
 local flags = ngx.var.luamp_flags
 local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
-local publicId = utils.cleanupPath(ngx.var.luamp_public_id)
-local extension = ngx.var.luamp_extension
-local filename = publicId .. '.' .. extension
+local mediaId = utils.cleanupPath(ngx.var.luamp_media_id)
+local mediaExtension = ngx.var.luamp_media_extension
+local filename = mediaId .. '.' .. mediaExtension
 
 log('prefix: ' .. prefix)
 log('flags: ' .. flags)

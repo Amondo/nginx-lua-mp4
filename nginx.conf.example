@@ -15,7 +15,7 @@ http {
         listen       80;
         
         # video location
-        location ~ ^/(?<luamp_media_type>(video))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_public_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp|mp4))$ {
+        location ~ ^/(?<luamp_media_type>(video))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp|mp4))$ {
             # these two are required to be set regardless
             set $luamp_original_file "";
             set $luamp_transcoded_file "";
@@ -34,7 +34,7 @@ http {
         }
 
         # image location
-        location ~ ^/(?<luamp_media_type>(image))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_public_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+        location ~ ^/(?<luamp_media_type>(image))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
             #pass to transcoder location
             try_files $uri @luamp_media_processor;
         }

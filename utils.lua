@@ -22,4 +22,16 @@ function utils.captureCommandOutput(cmd)
   end
 end
 
+---Check table is empty
+---@param table table
+---@return boolean
+function utils.isTableEmpty(table)
+  for _ in pairs(table) do
+    -- If anything is in the table, return false
+    return false
+  end
+  -- If the loop didn't return anything, the table is empty
+  return true
+end
+
 return utils
