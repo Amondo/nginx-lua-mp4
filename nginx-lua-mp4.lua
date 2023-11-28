@@ -12,10 +12,13 @@ config.setDefaults({
 })
 
 -- Get URL params
+local mediaType = ngx.var.luamp_media_type
 local prefix = utils.cleanupPath(ngx.var.luamp_prefix)
 local flags = ngx.var.luamp_flags
 local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
-local filename = utils.cleanupPath(ngx.var.luamp_filename)
+local mediaId = utils.cleanupPath(ngx.var.luamp_media_id)
+local mediaExtension = ngx.var.luamp_media_extension
+local filename = mediaId .. '.' .. mediaExtension
 
 log('prefix: ' .. prefix)
 log('flags: ' .. flags)
@@ -82,8 +85,10 @@ if optionsPath ~= '' then
 end
 
 -- check if we already have cached version of a file
-local cachedFilepath = config.mediaBaseFilepath .. (prefix or '') .. (optionsPath or '') .. (postfix or '')
-local originalFilepath = config.mediaBaseFilepath .. (prefix or '') .. (postfix or '')
+local cachedFilepath = config.mediaBaseFilepath ..
+    mediaType .. '/' .. (prefix or '') .. (optionsPath or '') .. (postfix or '')
+local originalFilepath = config.mediaBaseFilepath ..
+    mediaType .. '/original/' .. (prefix or '') .. (postfix or '')
 log('checking for cached transcoded version at: ' .. cachedFilepath .. filename)
 local cachedFile = io.open(cachedFilepath .. filename, 'r')
 

@@ -1,3 +1,4 @@
+local utils = require('utils')
 local File = {}
 
 File.IMAGE_TYPE = 'image'
@@ -18,8 +19,9 @@ end
 ---@param prefix string
 ---@param postfix string
 ---@param flags table
+---@param type string
 ---@return string
-local function buildCacheDirPath(basePath, prefix, postfix, flags)
+local function buildCacheDirPath(basePath, prefix, postfix, flags, type)
   local flagNamesOrdered = {}
 
   -- Add the flag name to the ordered list
@@ -30,7 +32,7 @@ local function buildCacheDirPath(basePath, prefix, postfix, flags)
   table.sort(flagNamesOrdered)
 
   -- Generate the options path
-  local optionsPath = ''
+  local optionsPath = type .. '/'
 
   for _, flagName in ipairs(flagNamesOrdered) do
     local pathFragment = coalesceFlag(flags[flagName])
@@ -43,15 +45,20 @@ local function buildCacheDirPath(basePath, prefix, postfix, flags)
 end
 
 -- Base class method new
-function File.new(config, prefix, postfix, filename, mediaType, flags)
+function File.new(config, prefix, postfix, id, extension, type, flags)
   local self = {}
   self.config = config
-  self.mediaType = mediaType
-  self.filename = filename
-  self.cacheDir = buildCacheDirPath(config.mediaBaseFilepath, prefix, postfix, flags)
-  self.cachedFilePath = self.cacheDir .. filename
-  self.originalDir = config.mediaBaseFilepath .. prefix .. postfix
-  self.originalFilePath = self.originalDir .. filename
+  self.id = id
+  self.type = type
+  self.extension = extension
+  self.name = id .. '.' .. extension
+  self.originalDir = config.mediaBaseFilepath .. type .. '/original/' .. prefix .. postfix
+  self.originalFilePath = self.originalDir .. id .. '.*'
+  self.cacheDir = self.originalDir
+  if not utils.isTableEmpty(flags) then
+    self.cacheDir = buildCacheDirPath(config.mediaBaseFilepath, prefix, postfix, flags, type)
+  end
+  self.cachedFilePath = self.cacheDir .. self.name
   setmetatable(self, { __index = File })
   return self
 end
@@ -65,7 +72,9 @@ end
 ---Checks file has original
 ---@return boolean
 function File:hasOriginal()
-  return File.fileExists(self.originalFilePath)
+  local cmd = string.format("ls -1 %s | grep '%s'", self.originalDir, self.id .. '.*')
+  local result = utils.captureCommandOutput(cmd)
+  return (result and result ~= "") or false
 end
 
 -- Check if a file exists

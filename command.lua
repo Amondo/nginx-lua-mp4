@@ -146,11 +146,11 @@ end
 ---@param flags table
 ---@return string
 local function buildCommand(config, file, flags)
-  if file.mediaType == File.IMAGE_TYPE then
+  if file.type == File.IMAGE_TYPE then
     return buildImageProcessingCommand(config, file, flags)
   end
 
-  if file.mediaType == File.VIDEO_TYPE then
+  if file.type == File.VIDEO_TYPE then
     return buildVideoProcessingCommand(config, file, flags)
   end
 
@@ -162,9 +162,11 @@ end
 ---@param file table
 ---@param flags table
 function Command.new(config, file, flags)
-  local self = {
-    command = buildCommand(config, file, flags),
-  }
+  local self = {}
+
+  self.command = buildCommand(config, file, flags)
+  self.isValid = self.command ~= nil
+
   setmetatable(self, { __index = Command })
   return self
 end

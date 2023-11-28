@@ -14,12 +14,24 @@ end
 ---@param cmd string
 ---@return any
 function utils.captureCommandOutput(cmd)
-  local file = io.popen(cmd)
-  if file then
-    local output = file:read('*a')
-    file:close()
+  local handle = io.popen(cmd)
+  if handle then
+    local output = handle:read('*a')
+    handle:close()
     return output
   end
+end
+
+---Check table is empty
+---@param table table
+---@return boolean
+function utils.isTableEmpty(table)
+  for _ in pairs(table) do
+    -- If anything is in the table, return false
+    return false
+  end
+  -- If the loop didn't return anything, the table is empty
+  return true
 end
 
 return utils
