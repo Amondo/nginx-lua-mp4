@@ -8,6 +8,8 @@ Flag.IMAGE_X_NAME = 'x'
 Flag.IMAGE_Y_NAME = 'y'
 Flag.IMAGE_HEIGHT_NAME = 'height'
 Flag.IMAGE_WIDTH_NAME = 'width'
+Flag.IMAGE_RADIUS_NAME = 'radius'
+Flag.IMAGE_QUALITY_NAME = 'quality'
 
 local IMAGE_DEFAULTS = {
   [Flag.IMAGE_BACKGROUND_NAME] = 'white',
@@ -15,6 +17,8 @@ local IMAGE_DEFAULTS = {
   [Flag.IMAGE_GRAVITY_NAME] = 'center',
   [Flag.IMAGE_X_NAME] = 0,
   [Flag.IMAGE_Y_NAME] = 0,
+  [Flag.IMAGE_RADIUS_NAME] = 0.1,
+  [Flag.IMAGE_QUALITY_NAME] = 80
 }
 
 -- Base class method new

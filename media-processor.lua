@@ -10,7 +10,7 @@ local utils = require('utils')
 ---@param postfix string
 ---@param file table
 local function downloadOriginals(prefix, postfix, file)
-  local originalsUpstreamPath = config.getOriginalsUpstreamPath(prefix, postfix, file.filename)
+  local originalsUpstreamPath = config.getOriginalsUpstreamPath(prefix, postfix, file.name)
   log('Downloading original from ' .. originalsUpstreamPath)
   ngx.req.discard_body() -- Clear body
 
@@ -24,9 +24,13 @@ local function downloadOriginals(prefix, postfix, file)
     os.execute('mkdir -p ' .. file.originalDir)
 
     local originalFile = io.open(file.originalFilePath, 'w')
-    originalFile:write(originalReq.body)
-    originalFile:close()
-    log('Saved to ' .. file.originalFilePath)
+    if originalFile then
+      originalFile:write(originalReq.body)
+      originalFile:close()
+      log('Saved to ' .. file.originalFilePath)
+    else
+      log('Something went wrong on saving original to ' .. file.originalFilePath)
+    end
   else
     ngx.exit(ngx.HTTP_NOT_FOUND)
   end
@@ -45,33 +49,39 @@ local function main()
   -- Get URL params
   local mediaType = ngx.var.luamp_media_type
   local prefix = utils.cleanupPath(ngx.var.luamp_prefix)
-  local luamp_flags = ngx.var.luamp_flags
+  local luampFlags = ngx.var.luamp_flags
   local postfix = utils.cleanupPath(ngx.var.luamp_postfix)
-  local filename = utils.cleanupPath(ngx.var.luamp_filename)
+  local mediaId = utils.cleanupPath(ngx.var.luamp_media_id)
+  local mediaExtension = ngx.var.luamp_media_extension
 
   log('MediaType: ' .. mediaType)
   log('Prefix: ' .. prefix)
-  log('Flags: ' .. luamp_flags)
   log('Postfix: ' .. postfix)
-  log('Filename: ' .. filename)
+  log('Flags: ' .. luampFlags)
+  log('MediaId: ' .. mediaId)
+  log('MediaExtension: ' .. mediaExtension)
 
   local flags = {}
   local flagMapper = {}
   local valueMapper = {}
 
   if mediaType == File.IMAGE_TYPE then
-    flags = {
-      background = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
-      crop = Flag.new(Flag.IMAGE_CROP_NAME),
-      dpr = Flag.new(Flag.IMAGE_DPR_NAME),
-      gravity = Flag.new(Flag.IMAGE_GRAVITY_NAME),
-      x = Flag.new(Flag.IMAGE_X_NAME),
-      y = Flag.new(Flag.IMAGE_Y_NAME),
-      height = Flag.new(Flag.IMAGE_HEIGHT_NAME),
-      width = Flag.new(Flag.IMAGE_WIDTH_NAME)
-    }
-    flagMapper = config.flagImageMap
-    valueMapper = config.flagValueMap
+    if luampFlags ~= '' then
+      flags = {
+        [Flag.IMAGE_BACKGROUND_NAME] = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
+        [Flag.IMAGE_CROP_NAME] = Flag.new(Flag.IMAGE_CROP_NAME),
+        [Flag.IMAGE_DPR_NAME] = Flag.new(Flag.IMAGE_DPR_NAME),
+        [Flag.IMAGE_GRAVITY_NAME] = Flag.new(Flag.IMAGE_GRAVITY_NAME),
+        [Flag.IMAGE_X_NAME] = Flag.new(Flag.IMAGE_X_NAME),
+        [Flag.IMAGE_Y_NAME] = Flag.new(Flag.IMAGE_Y_NAME),
+        [Flag.IMAGE_HEIGHT_NAME] = Flag.new(Flag.IMAGE_HEIGHT_NAME),
+        [Flag.IMAGE_WIDTH_NAME] = Flag.new(Flag.IMAGE_WIDTH_NAME),
+        [Flag.IMAGE_RADIUS_NAME] = Flag.new(Flag.IMAGE_RADIUS_NAME),
+        [Flag.IMAGE_QUALITY_NAME] = Flag.new(Flag.IMAGE_QUALITY_NAME),
+      }
+      flagMapper = config.flagImageMap
+      valueMapper = config.flagValueMap
+    end
   elseif mediaType == File.VIDEO_TYPE then
     flags = {}
     flagMapper = config.flagMap
@@ -81,28 +91,34 @@ local function main()
   end
 
   -- Parse flags into a table
-  for f, v in string.gmatch(luamp_flags, '(%w+)' .. config.flagValueDelimiter .. '([^' .. config.flagsDelimiter .. '\\/]+)' .. config.flagsDelimiter .. '*') do
+  for f, v in string.gmatch(luampFlags, '(%w+)' .. config.flagValueDelimiter .. '([^' .. config.flagsDelimiter .. '\\/]+)' .. config.flagsDelimiter .. '*') do
     -- Preprocess the flag and value if necessary
     if config.flagPreprocessHook then
       f, v = config.flagPreprocessHook(f, v)
     end
 
     local flag = flags[flagMapper[f]]
-
     -- Set value if flag exists
     if flag then
       flag:setValue(v, valueMapper)
     end
   end
 
+
   -- Scale dimensions with respect to limits
-  local maxHeight = (mediaType == File.IMAGE_TYPE and config.maxImageHeight) or config.maxVideoHeight
-  local maxWidth = (mediaType == File.IMAGE_TYPE and config.maxImageWidth) or config.maxVideoWidth
-  flags.height:scaleDimension(flags.dpr.value, maxHeight)
-  flags.width:scaleDimension(flags.dpr.value, maxWidth)
+  if flags[Flag.IMAGE_HEIGHT_NAME] then
+    local maxHeight = (mediaType == File.IMAGE_TYPE and config.maxImageHeight) or config.maxVideoHeight
+    flags[Flag.IMAGE_HEIGHT_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxHeight)
+  end
+  if flags[Flag.IMAGE_WIDTH_NAME] then
+    local maxWidth = (mediaType == File.IMAGE_TYPE and config.maxImageWidth) or config.maxVideoWidth
+    flags[Flag.IMAGE_WIDTH_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxWidth)
+  end
 
-  local file = File.new(config, prefix, postfix, filename, mediaType, flags)
+  local file = File.new(config, prefix, postfix, mediaId, mediaExtension, mediaType, flags)
 
+  log(file.cachedFilePath)
+  log(file.originalFilePath)
   -- Serve the cached file if it exists
   if file:isCached() then
     log('Serving cached file: ' .. file.cachedFilePath)
@@ -125,23 +141,23 @@ local function main()
   end
 
   log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
-  local command = Command.new(config, file, flags)
+  local cmd = Command.new(config, file, flags)
   local executeSuccess
-  if command.command then
-    log('Command: ' .. command.command)
-    executeSuccess = command:execute()
+  if cmd.isValid then
+    log('Command: ' .. cmd.command)
+    executeSuccess = cmd:execute()
   end
 
-  if executeSuccess == nil then
+  if executeSuccess then
+    log('Transcoded version is good, serving it')
+    ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
+  else
     log('Transcode failed')
 
     if config.serveOriginalOnTranscodeFailure == true then
       log('Serving original from: ' .. file.originalFilePath)
       ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
     end
-  else
-    log('Transcoded version is good, serving it')
-    ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
   end
 end
 

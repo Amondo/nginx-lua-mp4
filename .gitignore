@@ -2,6 +2,10 @@
 .vscode
 .idea
 config.lua
+tmp
+nginx.conf
+docker-compose.yml
+Dockerfile
 tests/originals
 tests/runfiles
 tests/links_image

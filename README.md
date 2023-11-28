@@ -62,28 +62,26 @@ http {
 And here's minimal viable config for 4 locations you need to set up. These locations are described in the sections below:
 ```
 # video location
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
+location ~ ^/(?<luamp_media_type>(video))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(mp4))$ {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-
+    
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
 
     #pass to transcoder location
-    try_files $uri @luamp_process;
+    try_files $uri @luamp_video_process;
 }
 
-# process/transcode location
-location @luamp_process {
+# video process/transcode location
+location @luamp_video_process {
     content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
 }
 
 # image location
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
-    set $luamp_media_type "image";
-
+location ~ ^/(?<luamp_media_type>(image))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
     #pass to transcoder location
     try_files $uri @luamp_media_processor;
 }
@@ -93,12 +91,12 @@ location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-
+    
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
 
-    content_by_lua_file "/usr/local/openresty/nginx/media-processor.lua";
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 
 # cache location
@@ -126,38 +124,39 @@ This location used as an entry point and to set initial variables. This is usual
 
 There are two variables you need to `set`/initialise: `$luamp_original_file` and `$luamp_transcoded_file`.
 
-There are four variables that may be used as a named capture group in location regex: `luamp_prefix`, `luamp_flags`, `luamp_postfix`, `luamp_filename`.
+There are six variables that may be used as a named capture group in location regex: `luamp_prefix`, `luamp_media_type`, `luamp_flags`, `luamp_postfix`, `luamp_media_id`, `luamp_media_extension`.
 
 For example:
 
 ```
 https://example.com/asset/video/width_1980,height_1080,crop_padding/2019/12/new_year_boardgames_party.mp4
-luamp_prefix:   asset/video/
+luamp_prefix:   asset/
+luamp_media_type: video
 luamp_flags:    width_1980,height_1080,crop_padding
 luamp_postfix:  2019/12/
-luamp_filename: new_year_boardgames_party.mp4
+luamp_media_id: new_year_boardgames_party
+luamp_media_extension: mp4
 ```
 
 If you do not need prefix and postfix, you can omit them from the regexp, but do make sure you `set` them to an empty string in the location. Here's the minimal viable example for simpler URLs with no prefix/postfix:
 
 ```
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
+location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-
+    
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
 
-    #pass to transcoder location
-    try_files $uri @luamp_process;
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 
 ```
 
 #### Security considerations
-`prefix`, `postfix` and `filename` are passed to the `os.execute()` with following sanitisation:
+`prefix`, `postfix` and `media_id` are passed to the `os.execute()` with following sanitisation:
 
 - alphanumeric symbols, underscores, dots and slashes are allowed.
 - all other symbols are stripped.
@@ -167,15 +166,15 @@ These sanitisation rules are enough to prevent shell injections and path travers
 - `(?<luamp_prefix>[0-9a-zA-Z_\-\.\/]+\/)`
 - `(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)`
 - `(?<luamp_postfix>[0-9a-zA-Z_\-\.\/]+\/)`
-- `(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)`
+- `(?<luamp_media_id>[0-9a-zA-Z_\-\.]+\.mp4)`
 
 #### 2.2. Process location
 
 Process location is pretty simple, it just passes execution to the LUA part of luamp module:
 
 ```
-location @luamp_process {
-    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
+location @luamp_media_processor {
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 ```
 
@@ -233,7 +232,7 @@ $ nano config.lua
 
 When set to `true`, `luamp` will attempt to download missing original videos from the upstream. Set it to `false` if you have original videos provided by other means to this directory:
 ```
-config.mediaBaseFilepath/$prefix/$postfix/$filename
+config.mediaBaseFilepath/<media_type>/original/$prefix/$postfix/$media_id
 ```
 
 #### `config.ffmpeg`
