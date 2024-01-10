@@ -117,8 +117,6 @@ local function main()
 
   local file = File.new(config, prefix, postfix, mediaId, mediaExtension, mediaType, flags)
 
-  log(file.cachedFilePath)
-  log(file.originalFilePath)
   -- Serve the cached file if it exists
   if file:isCached() then
     log('Serving cached file: ' .. file.cachedFilePath)
@@ -142,22 +140,22 @@ local function main()
 
   log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
   local cmd = Command.new(config, file, flags)
-  local executeSuccess
-  if cmd.isValid then
-    log('Command: ' .. cmd.command)
-    executeSuccess = cmd:execute()
-  end
+  local executeSuccess = cmd:execute()
 
   if executeSuccess then
     log('Transcoded version is good, serving it')
     ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
-  else
-    log('Transcode failed')
+  end
 
-    if config.serveOriginalOnTranscodeFailure == true then
-      log('Serving original from: ' .. file.originalFilePath)
-      ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
-    end
+  log('Transcode failed')
+
+  if not cmd.isValid then
+    log('Invalid command')
+  end
+
+  if config.serveOriginalOnTranscodeFailure == true then
+    log('Serving original from: ' .. file.originalFilePath)
+    ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
   end
 end
 

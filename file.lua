@@ -16,12 +16,13 @@ end
 
 ---Build cache dir path
 ---@param basePath string
----@param prefix string
----@param postfix string
 ---@param flags table
----@param type string
 ---@return string
-local function buildCacheDirPath(basePath, prefix, postfix, flags, type)
+local function buildCacheDirPath(basePath, flags)
+  if utils.isTableEmpty(flags) then
+    return basePath
+  end
+
   local flagNamesOrdered = {}
 
   -- Add the flag name to the ordered list
@@ -32,7 +33,7 @@ local function buildCacheDirPath(basePath, prefix, postfix, flags, type)
   table.sort(flagNamesOrdered)
 
   -- Generate the options path
-  local optionsPath = type .. '/'
+  local optionsPath = ''
 
   for _, flagName in ipairs(flagNamesOrdered) do
     local pathFragment = coalesceFlag(flags[flagName])
@@ -41,7 +42,7 @@ local function buildCacheDirPath(basePath, prefix, postfix, flags, type)
     end
   end
 
-  return basePath .. prefix .. optionsPath .. postfix
+  return basePath .. optionsPath
 end
 
 -- Base class method new
@@ -52,12 +53,10 @@ function File.new(config, prefix, postfix, id, extension, type, flags)
   self.type = type
   self.extension = extension
   self.name = id .. '.' .. extension
-  self.originalDir = config.mediaBaseFilepath .. type .. '/original/' .. prefix .. postfix
-  self.originalFilePath = self.originalDir .. id .. '.*'
-  self.cacheDir = self.originalDir
-  if not utils.isTableEmpty(flags) then
-    self.cacheDir = buildCacheDirPath(config.mediaBaseFilepath, prefix, postfix, flags, type)
-  end
+  self.originalDir = config.mediaBaseFilepath .. prefix .. postfix
+  self.originalFilePath = self.originalDir .. self.name
+  self.originalFileIdPath = self.originalDir .. id .. '.*'
+  self.cacheDir = buildCacheDirPath(self.originalDir, flags)
   self.cachedFilePath = self.cacheDir .. self.name
   setmetatable(self, { __index = File })
   return self

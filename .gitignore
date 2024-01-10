@@ -4,6 +4,7 @@
 config.lua
 tmp
 nginx.conf
+luamp-locations.conf
 docker-compose.yml
 Dockerfile
 tests/originals

@@ -20,10 +20,12 @@ local mediaId = utils.cleanupPath(ngx.var.luamp_media_id)
 local mediaExtension = ngx.var.luamp_media_extension
 local filename = mediaId .. '.' .. mediaExtension
 
-log('prefix: ' .. prefix)
-log('flags: ' .. flags)
-log('postfix: ' .. postfix)
-log('filename: ' .. filename)
+log('MediaType: ' .. mediaType)
+log('Prefix: ' .. prefix)
+log('Postfix: ' .. postfix)
+log('Flags: ' .. flags)
+log('MediaId: ' .. mediaId)
+log('MediaExtension: ' .. mediaExtension)
 
 -- Initialize flag-related variables
 local flagValues = {}
@@ -85,10 +87,8 @@ if optionsPath ~= '' then
 end
 
 -- check if we already have cached version of a file
-local cachedFilepath = config.mediaBaseFilepath ..
-    mediaType .. '/' .. (prefix or '') .. (optionsPath or '') .. (postfix or '')
-local originalFilepath = config.mediaBaseFilepath ..
-    mediaType .. '/original/' .. (prefix or '') .. (postfix or '')
+local originalFilepath = config.mediaBaseFilepath .. (prefix or '') .. (postfix or '')
+local cachedFilepath = originalFilepath .. (optionsPath or '')
 log('checking for cached transcoded version at: ' .. cachedFilepath .. filename)
 local cachedFile = io.open(cachedFilepath .. filename, 'r')
 
