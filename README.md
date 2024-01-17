@@ -62,11 +62,12 @@ http {
 And here's minimal viable config for 4 locations you need to set up. These locations are described in the sections below:
 ```
 # video location
-location ~ ^/(?<luamp_media_type>(video))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(mp4))$ {
+location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(mp4))$ {
     # these two are required to be set regardless
+    set $luamp_media_type "video";
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-    
+
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
@@ -81,7 +82,12 @@ location @luamp_video_process {
 }
 
 # image location
-location ~ ^/(?<luamp_media_type>(image))/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+    # these are needed to be set if you did not use them in regex matching location
+    set $luamp_media_type "image";
+    set $luamp_prefix "";
+    set $luamp_postfix "";
+
     #pass to transcoder location
     try_files $uri @luamp_media_processor;
 }
@@ -91,10 +97,6 @@ location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-    
-    # these are needed to be set if you did not use them in regex matching location
-    set $luamp_prefix "";
-    set $luamp_postfix "";
 
     content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
@@ -124,14 +126,13 @@ This location used as an entry point and to set initial variables. This is usual
 
 There are two variables you need to `set`/initialise: `$luamp_original_file` and `$luamp_transcoded_file`.
 
-There are six variables that may be used as a named capture group in location regex: `luamp_prefix`, `luamp_media_type`, `luamp_flags`, `luamp_postfix`, `luamp_media_id`, `luamp_media_extension`.
+There are six variables that may be used as a named capture group in location regex: `luamp_prefix`, `luamp_flags`, `luamp_postfix`, `luamp_media_id`, `luamp_media_extension`.
 
 For example:
 
 ```
 https://example.com/asset/video/width_1980,height_1080,crop_padding/2019/12/new_year_boardgames_party.mp4
-luamp_prefix:   asset/
-luamp_media_type: video
+luamp_prefix:   asset/video/
 luamp_flags:    width_1980,height_1080,crop_padding
 luamp_postfix:  2019/12/
 luamp_media_id: new_year_boardgames_party
@@ -145,10 +146,6 @@ location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
-    
-    # these are needed to be set if you did not use them in regex matching location
-    set $luamp_prefix "";
-    set $luamp_postfix "";
 
     content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
@@ -174,6 +171,10 @@ Process location is pretty simple, it just passes execution to the LUA part of l
 
 ```
 location @luamp_media_processor {
+    # these two are required to be set regardless
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
     content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 ```
@@ -232,7 +233,7 @@ $ nano config.lua
 
 When set to `true`, `luamp` will attempt to download missing original videos from the upstream. Set it to `false` if you have original videos provided by other means to this directory:
 ```
-config.mediaBaseFilepath/<media_type>/original/$prefix/$postfix/$media_id
+config.mediaBaseFilepath/$prefix/$postfix/$media_id.$media_extension
 ```
 
 #### `config.ffmpeg`
@@ -242,6 +243,15 @@ Path to the `ffmpeg` executable. Can be figured out by using `which` command in 
 ```
 $ which ffmpeg
 /usr/local/bin/ffmpeg
+```
+
+#### `config.magick`
+
+Path to the `magick` executable. Can be figured out by using `which` command in the terminal:
+
+```
+$ which magick
+/usr/local/bin/magick
 ```
 
 #### `config.ffmpegDevNull`
@@ -337,9 +347,9 @@ Log level, available values: `ngx.STDERR`, `ngx.EMERG`, `ngx.ALERT`, `ngx.CRIT`,
 
 Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time spent in transcoding.
 
-#### `config.maxHeight` and `config.maxWidth`
+#### `config.maxVideoHeight`,`config.maxVideoWidth`, `config.maxImageHeight` and `config.maxImageWidth`
 
-Limit the output video's maximum height or width. If the resulting height or width is exceeding the limit (for example, after a high DPR calculation), it will be capped at the `config.maxHeight` and `config.maxWidth`.
+Limit the maximum height or width of the output media. If the resulting height or width exceeds the limit (for example, after a high DPR calculation), it will be limited to the specified limits.
 
 #### `config.mediaBaseFilepath`
 
@@ -354,6 +364,14 @@ During the transcoding, errors may occur and ffmpeg sometimes leaves corrupt fil
 #### `config.serveOriginalOnTranscodeFailure`
 
 Serve original file when transcode failed. If set to `false`, luamp will respond with 404 in this case
+
+#### `config.stripColorProfile`
+
+Removes a color profile from the original file.
+
+#### `config.colorProfilePath`
+
+Applies a color profile from specified location.
 
 ## Update
 
@@ -389,9 +407,9 @@ You definitely want to keep what was customized by you but also to get new confi
 ```
 nginx-lua-mp4 $ sdiff -s config.lua config.lua.example | grep -e '\s*>' | sed -ne "s/^[[:space:]]*>\t//p"
 -- top limit for output video height (default 4k UHD)
-config.maxHeight = 2160
+config.maxVideoHeight = 2160
 -- top limit for output video width (default 4k UHD)
-config.maxWidth = 3840
+config.maxVideoWidth = 3840
 ```
 
 You can now just copy and paste these lines above the `return config` in `config.lua` and that's it 👌

@@ -27,7 +27,10 @@ local function buildCacheDirPath(basePath, flags)
 
   -- Add the flag name to the ordered list
   for flagName, _ in pairs(flags) do
-    table.insert(flagNamesOrdered, flagName)
+    local flag = flags[flagName]
+    if flag.makeDir then
+      table.insert(flagNamesOrdered, flagName)
+    end
   end
   -- Sort flags so path will be the same for `w_1280,h_960` and `h_960,w_1280`
   table.sort(flagNamesOrdered)

@@ -17,12 +17,27 @@ local function getCanvas(config, file, flags)
 
     canvas = file.originalFileIdPath .. ' -size %wx%h gradient:' .. dominantColors .. ' -delete 0 '
   elseif background == 'blurred' then
-    canvas = file.originalFileIdPath .. ' -crop 80%x80% +repage -blur 0x8 '
+    canvas = file.originalFileIdPath .. ' -crop 80%x80% +repage -scale 10% -blur 0x2.5 -resize 1000% '
   else
     canvas = file.originalFileIdPath .. ' -size %wx%h xc:' .. (background or '') .. ' -delete 0 '
   end
 
   return canvas
+end
+
+local function getMask(radius)
+  local mask =
+      ' -size %[origwidth]x%[origheight]' ..
+      ' xc:black' ..
+      ' -fill white'
+
+  if radius then
+    mask = mask .. ' -draw "roundrectangle 0,0,%[origwidth],%[origheight],' .. radius .. ',' .. radius .. '"'
+  else
+    mask = mask .. ' -draw "rectangle 0,0,%[origwidth],%[origheight]"'
+  end
+
+  return mask .. ' -alpha Copy'
 end
 
 -- Build image processing command
@@ -39,6 +54,7 @@ local function buildImageProcessingCommand(config, file, flags)
   local height = flags[Flag.IMAGE_HEIGHT_NAME].value
   local radius = flags[Flag.IMAGE_RADIUS_NAME].value
   local quality = flags[Flag.IMAGE_QUALITY_NAME].value
+  local minpad = flags[Flag.IMAGE_MINPAD_NAME].value
 
   -- Construct a command
   local command = ''
@@ -47,13 +63,8 @@ local function buildImageProcessingCommand(config, file, flags)
       ' -quality ' .. quality ..
       ' -gravity ' .. gravity .. ' '
   local canvas = getCanvas(config, file, flags)
-  local image = file.originalFileIdPath .. ' -modulate 100,120,100 '
-  local mask =
-      '-size %[origwidth]x%[origheight]' ..
-      ' xc:black' ..
-      ' -fill white' ..
-      ' -draw "roundrectangle 0,0,%[origwidth],%[origheight],' .. radius .. ',' .. radius .. '"' ..
-      ' -alpha Copy'
+  local image = file.originalFileIdPath .. ' -modulate 100,120,100'
+  local mask = getMask(radius)
   local dimensions = (width or '') .. 'x' .. (height or '')
 
   if crop == 'fill' and (width or height) then
@@ -76,7 +87,7 @@ local function buildImageProcessingCommand(config, file, flags)
         ' -crop ' .. dimensions .. '+0+0 ' ..
         ' \\( ' ..
         image ..
-        ' -resize ' .. dimensions .. '\\>' ..
+        ' -resize ' .. (width - (minpad or 0)) .. 'x' .. (height - (minpad or 0)) .. '\\>' ..
         ' -set option:origwidth %w' ..
         ' -set option:origheight %h' ..
         ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..

@@ -10,22 +10,32 @@ Flag.IMAGE_HEIGHT_NAME = 'height'
 Flag.IMAGE_WIDTH_NAME = 'width'
 Flag.IMAGE_RADIUS_NAME = 'radius'
 Flag.IMAGE_QUALITY_NAME = 'quality'
+Flag.IMAGE_MINPAD_NAME = 'minpad'
 
 local IMAGE_DEFAULTS = {
   [Flag.IMAGE_BACKGROUND_NAME] = 'white',
-  [Flag.IMAGE_DPR_NAME] = 1,
   [Flag.IMAGE_GRAVITY_NAME] = 'center',
   [Flag.IMAGE_X_NAME] = 0,
   [Flag.IMAGE_Y_NAME] = 0,
-  [Flag.IMAGE_RADIUS_NAME] = 0.1,
   [Flag.IMAGE_QUALITY_NAME] = 80
 }
 
 -- Base class method new
-function Flag.new(name, value)
+function Flag.new(config, name, value)
   local self = {}
+  self.config = config
   self.name = name
   self.value = value or IMAGE_DEFAULTS[name]
+  self.isScalable = false
+  self.makeDir = true
+
+  if self.name == Flag.IMAGE_HEIGHT_NAME or self.name == Flag.IMAGE_WIDTH_NAME or self.name == Flag.IMAGE_RADIUS_NAME or self.name == Flag.IMAGE_MINPAD_NAME then
+    self.isScalable = true
+  end
+
+  if self.name == Flag.IMAGE_DPR_NAME then
+    self.makeDir = false
+  end
 
   setmetatable(self, { __index = Flag })
   return self
@@ -41,15 +51,19 @@ function Flag:setValue(value, valueMapper)
   end
 end
 
--- Apply limits to a given dimension
+-- Scale dimension
 ---@param dpr number
----@param max number
-function Flag:scaleDimension(dpr, max)
-  if (self.name == Flag.IMAGE_HEIGHT_NAME or self.name == Flag.IMAGE_WIDTH_NAME) and self.value and dpr then
-    self.value = math.ceil(self.value * dpr)
+function Flag:scale(dpr)
+  if self.value and self.value ~= '' then
+    self.value = math.ceil(self.value * (dpr or 1))
 
-    if self.value > max then
-      self.value = max
+    -- Apply limits
+    if self.name == Flag.IMAGE_HEIGHT_NAME and self.config.maxImageHeight and self.value > self.config.maxImageHeight then
+      self.value = self.config.maxImageHeight
+    end
+
+    if self.name == Flag.IMAGE_WIDTH_NAME and self.config.maxImageWidth and self.value > self.config.maxImageWidth then
+      self.value = self.config.maxImageWidth
     end
   end
 end

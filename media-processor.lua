@@ -68,16 +68,17 @@ local function main()
   if mediaType == File.IMAGE_TYPE then
     if luampFlags ~= '' then
       flags = {
-        [Flag.IMAGE_BACKGROUND_NAME] = Flag.new(Flag.IMAGE_BACKGROUND_NAME),
-        [Flag.IMAGE_CROP_NAME] = Flag.new(Flag.IMAGE_CROP_NAME),
-        [Flag.IMAGE_DPR_NAME] = Flag.new(Flag.IMAGE_DPR_NAME),
-        [Flag.IMAGE_GRAVITY_NAME] = Flag.new(Flag.IMAGE_GRAVITY_NAME),
-        [Flag.IMAGE_X_NAME] = Flag.new(Flag.IMAGE_X_NAME),
-        [Flag.IMAGE_Y_NAME] = Flag.new(Flag.IMAGE_Y_NAME),
-        [Flag.IMAGE_HEIGHT_NAME] = Flag.new(Flag.IMAGE_HEIGHT_NAME),
-        [Flag.IMAGE_WIDTH_NAME] = Flag.new(Flag.IMAGE_WIDTH_NAME),
-        [Flag.IMAGE_RADIUS_NAME] = Flag.new(Flag.IMAGE_RADIUS_NAME),
-        [Flag.IMAGE_QUALITY_NAME] = Flag.new(Flag.IMAGE_QUALITY_NAME),
+        [Flag.IMAGE_BACKGROUND_NAME] = Flag.new(config, Flag.IMAGE_BACKGROUND_NAME),
+        [Flag.IMAGE_CROP_NAME] = Flag.new(config, Flag.IMAGE_CROP_NAME),
+        [Flag.IMAGE_DPR_NAME] = Flag.new(config, Flag.IMAGE_DPR_NAME),
+        [Flag.IMAGE_GRAVITY_NAME] = Flag.new(config, Flag.IMAGE_GRAVITY_NAME),
+        [Flag.IMAGE_X_NAME] = Flag.new(config, Flag.IMAGE_X_NAME),
+        [Flag.IMAGE_Y_NAME] = Flag.new(config, Flag.IMAGE_Y_NAME),
+        [Flag.IMAGE_HEIGHT_NAME] = Flag.new(config, Flag.IMAGE_HEIGHT_NAME),
+        [Flag.IMAGE_WIDTH_NAME] = Flag.new(config, Flag.IMAGE_WIDTH_NAME),
+        [Flag.IMAGE_RADIUS_NAME] = Flag.new(config, Flag.IMAGE_RADIUS_NAME),
+        [Flag.IMAGE_QUALITY_NAME] = Flag.new(config, Flag.IMAGE_QUALITY_NAME),
+        [Flag.IMAGE_MINPAD_NAME] = Flag.new(config, Flag.IMAGE_MINPAD_NAME),
       }
       flagMapper = config.flagImageMap
       valueMapper = config.flagValueMap
@@ -104,15 +105,16 @@ local function main()
     end
   end
 
-
   -- Scale dimensions with respect to limits
-  if flags[Flag.IMAGE_HEIGHT_NAME] then
-    local maxHeight = (mediaType == File.IMAGE_TYPE and config.maxImageHeight) or config.maxVideoHeight
-    flags[Flag.IMAGE_HEIGHT_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxHeight)
-  end
-  if flags[Flag.IMAGE_WIDTH_NAME] then
-    local maxWidth = (mediaType == File.IMAGE_TYPE and config.maxImageWidth) or config.maxVideoWidth
-    flags[Flag.IMAGE_WIDTH_NAME]:scaleDimension(flags[Flag.IMAGE_DPR_NAME].value, maxWidth)
+  local dpr = flags[Flag.IMAGE_DPR_NAME]
+  if dpr and dpr.value then
+    for flagName, _ in pairs(flags) do
+      local flag = flags[flagName]
+      if flag.isScalable then
+        log('Scaling flag: ' .. flagName)
+        flag:scale(dpr.value)
+      end
+    end
   end
 
   local file = File.new(config, prefix, postfix, mediaId, mediaExtension, mediaType, flags)
@@ -140,6 +142,7 @@ local function main()
 
   log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
   local cmd = Command.new(config, file, flags)
+  log('Command: ' .. cmd.command)
   local executeSuccess = cmd:execute()
 
   if executeSuccess then
