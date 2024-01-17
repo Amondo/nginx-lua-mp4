@@ -233,7 +233,7 @@ $ nano config.lua
 
 When set to `true`, `luamp` will attempt to download missing original videos from the upstream. Set it to `false` if you have original videos provided by other means to this directory:
 ```
-config.mediaBaseFilepath/<media_type>/original/$prefix/$postfix/$media_id
+config.mediaBaseFilepath/$prefix/$postfix/$media_id.$media_extension
 ```
 
 #### `config.ffmpeg`
