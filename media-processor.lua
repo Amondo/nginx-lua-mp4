@@ -140,6 +140,12 @@ local function main()
     end
   end
 
+  -- Serve the cached file if it exists
+  if file:isCached() then
+    log('Serving cached file: ' .. file.cachedFilePath)
+    ngx.exec('/luamp-cache', { luamp_cached_file_path = file.cachedFilePath })
+  end
+
   log('Original is present on local FS. Transcoding to ' .. file.cachedFilePath)
   local cmd = Command.new(config, file, flags)
   log('Command: ' .. cmd.command)
