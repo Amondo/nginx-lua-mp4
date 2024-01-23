@@ -10,16 +10,16 @@ local function getCanvas(config, file, flags)
 
   if background == 'auto' then
     -- Get 2 dominant colors in format 'x000000-x000000'
-    local cmd = config.magick .. ' ' .. file.originalFileIdPath ..
+    local cmd = config.magick .. ' ' .. file.originalFilePath ..
         ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
 
     local dominantColors = utils.captureCommandOutput(cmd)
 
-    canvas = file.originalFileIdPath .. ' -size %wx%h gradient:' .. dominantColors .. ' -delete 0 '
+    canvas = file.originalFilePath .. ' -size %wx%h gradient:' .. dominantColors .. ' -delete 0 '
   elseif background == 'blurred' then
-    canvas = file.originalFileIdPath .. ' -crop 80%x80% +repage -scale 10% -blur 0x2.5 -resize 1000% '
+    canvas = file.originalFilePath .. ' -crop 80%x80% +repage -scale 10% -blur 0x2.5 -resize 1000% '
   else
-    canvas = file.originalFileIdPath .. ' -size %wx%h xc:' .. (background or '') .. ' -delete 0 '
+    canvas = file.originalFilePath .. ' -size %wx%h xc:' .. (background or '') .. ' -delete 0 '
   end
 
   return canvas
@@ -63,7 +63,7 @@ local function buildImageProcessingCommand(config, file, flags)
       ' -quality ' .. quality ..
       ' -gravity ' .. gravity .. ' '
   local canvas = getCanvas(config, file, flags)
-  local image = file.originalFileIdPath .. ' -modulate 100,120,100'
+  local image = file.originalFilePath .. ' -modulate 100,120,100'
   local mask = getMask(radius)
   local dimensions = (width or '') .. 'x' .. (height or '')
 

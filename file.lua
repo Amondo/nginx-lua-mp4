@@ -56,9 +56,8 @@ function File.new(config, prefix, postfix, id, extension, type, flags)
   self.type = type
   self.extension = extension
   self.name = id .. '.' .. extension
-  self.originalDir = config.mediaBaseFilepath .. prefix .. postfix
+  self.originalDir = config.mediaBaseFilepath .. prefix .. postfix .. id .. '/' .. extension .. '/'
   self.originalFilePath = self.originalDir .. self.name
-  self.originalFileIdPath = self.originalDir .. id .. '.*'
   self.cacheDir = buildCacheDirPath(self.originalDir, flags)
   self.cachedFilePath = self.cacheDir .. self.name
   setmetatable(self, { __index = File })
@@ -74,9 +73,7 @@ end
 ---Checks file has original
 ---@return boolean
 function File:hasOriginal()
-  local cmd = string.format("ls -1 %s | grep '%s'", self.originalDir, self.id .. '.*')
-  local result = utils.captureCommandOutput(cmd)
-  return (result and result ~= "") or false
+  return File.fileExists(self.originalFilePath)
 end
 
 -- Check if a file exists

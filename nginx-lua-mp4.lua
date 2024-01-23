@@ -87,7 +87,8 @@ if optionsPath ~= '' then
 end
 
 -- check if we already have cached version of a file
-local originalFilepath = config.mediaBaseFilepath .. (prefix or '') .. (postfix or '')
+local originalFilepath = config.mediaBaseFilepath ..
+    (prefix or '') .. (postfix or '') .. mediaId .. '/' .. mediaExtension .. '/'
 local cachedFilepath = originalFilepath .. (optionsPath or '')
 log('checking for cached transcoded version at: ' .. cachedFilepath .. filename)
 local cachedFile = io.open(cachedFilepath .. filename, 'r')
@@ -112,7 +113,7 @@ if cachedFile == nil then
             -- fetch
             local originalReq = ngx.location.capture('/luamp-upstream',
                 { vars = { luamp_original_file = config.getOriginalsUpstreamPath(prefix, postfix, filename) } })
-            log('upstream status: ' .. originalReq.status)
+            log('upstream status: ' .. originalReq.body)
             if originalReq.status == ngx.HTTP_OK and originalReq.body:len() > 0 then
                 log('downloaded original, saving')
                 os.execute('mkdir -p ' .. originalFilepath)
