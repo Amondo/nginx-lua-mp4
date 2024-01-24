@@ -87,7 +87,7 @@ local function buildImageProcessingCommand(config, file, flags)
         ' -crop ' .. dimensions .. '+0+0 ' ..
         ' \\( ' ..
         image ..
-        ' -resize ' .. (width - (minpad or 0)) .. 'x' .. (height - (minpad or 0)) .. '\\>' ..
+        ' -resize ' .. (width - 2 * (minpad or 0)) .. 'x' .. (height - 2 * (minpad or 0)) .. '\\>' ..
         ' -set option:origwidth %w' ..
         ' -set option:origheight %h' ..
         ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
