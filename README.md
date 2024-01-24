@@ -314,7 +314,7 @@ Default flag values, e.g. `c_pad` or `c_lpad`, also `b_blurred`:
 config.flagValueMap = {
     ['pad'] = 'padding',
     ['lpad'] = 'limited_padding',
-    ['blurred'] = 'blur',
+    ['blurred'] = 'blurred',
 }
 ```
 
@@ -323,7 +323,7 @@ Full flag values, e.g. `c_padding` or `c_limited-padding`:
 config.flagValueMap = {
     ['pading'] = 'padding',
     ['limited-padding'] = 'limited_padding',
-    ['blurred'] = 'blur',
+    ['blurred'] = 'blurred',
 }
 ```
 

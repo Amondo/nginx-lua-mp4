@@ -200,7 +200,7 @@ if cachedFile == nil then
     -- create command
     local command
 
-    if (flagValues['background'] ~= nil and flagValues['background'] == 'blur' and flagValues['crop'] ~= nil and flagValues['crop'] == 'limited_padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
+    if (flagValues['background'] ~= nil and flagValues['background'] == 'blurred' and flagValues['crop'] ~= nil and flagValues['crop'] == 'limited_padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale + padded (no upscale) + blurred bg
         command = config.ffmpeg ..
             ' -i ' ..
@@ -229,7 +229,7 @@ if cachedFile == nil then
             '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' ..
             (flagValues['y'] or '(H-h)/2') ..
             ':x=' .. (flagValues['x'] or '(W-w)/2') .. '" -c:a copy ' .. preset .. cachedFilepath .. filename
-    elseif (flagValues['background'] ~= nil and flagValues['background'] == 'blur' and flagValues['crop'] ~= nil and flagValues['crop'] == 'padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
+    elseif (flagValues['background'] ~= nil and flagValues['background'] == 'blurred' and flagValues['crop'] ~= nil and flagValues['crop'] == 'padding' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- scale + padded (with upscale) + blurred bg
         command = config.ffmpeg ..
             ' -i ' ..
