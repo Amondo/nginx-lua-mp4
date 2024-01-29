@@ -64,7 +64,6 @@ And here's minimal viable config for 4 locations you need to set up. These locat
 # video location
 location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(mp4))$ {
     # these two are required to be set regardless
-    set $luamp_media_type "video";
     set $luamp_original_file "";
     set $luamp_transcoded_file "";
 
@@ -73,18 +72,13 @@ location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)
     set $luamp_postfix "";
 
     #pass to transcoder location
-    try_files $uri @luamp_video_process;
+    try_files $uri @luamp_media_processor;
 }
 
-# video process/transcode location
-location @luamp_video_process {
-    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
-}
 
 # image location
 location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
     # these are needed to be set if you did not use them in regex matching location
-    set $luamp_media_type "image";
     set $luamp_prefix "";
     set $luamp_postfix "";
 
@@ -92,7 +86,7 @@ location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)
     try_files $uri @luamp_media_processor;
 }
 
-# image process/transcode location
+# media process/transcode location
 location @luamp_media_processor {
     # these two are required to be set regardless
     set $luamp_original_file "";
@@ -268,33 +262,33 @@ For win:
 config.ffmpegDevNull = '2>NUL' -- win
 ```
 
-#### `config.flagMap`
+#### `config.flagVideoMap`, `config.flagImageMap`
 
-Use this table to customize how flags are called in your URLs. Defaults are one letter flags like `w` for `width`, but you can customise these by editing left side of `flagMap` table:
+Use this table to customize how flags are called in your URLs. Defaults are one letter flags like `w` for `width`, but you can customise these by editing left side of `flagVideoMap` or `flagImageMap` table:
 
 One letter flags (except for DPR) if you want to use flags like `w_200,h_180,c_pad`:
 
 ```
-    ['c'] = 'crop',
-    ['b'] = 'background',
-    ['dpr'] = 'dpr',
-    ['h'] = 'height',
-    ['w'] = 'width',
+    c = Flag.VIDEO_CROP_NAME,
+    b = Flag.VIDEO_BACKGROUND_NAME,
+    dpr = Flag.VIDEO_DPR_NAME,
+    h = Flag.VIDEO_HEIGHT_NAME,
+    w = Flag.VIDEO_WIDTH_NAME,
 ```
 
 Full flags if you want to use flags like `width_200,height_180,crop_pad`:
 
 ```
-    ['crop'] = 'crop',
-    ['background'] = 'background',
-    ['dpr'] = 'dpr',
-    ['height'] = 'height',
-    ['width'] = 'width',
+    crop = Flag.VIDEO_CROP_NAME,
+    background = Flag.VIDEO_BACKGROUND_NAME,
+    dpr = Flag.VIDEO_DPR_NAME,
+    height = Flag.VIDEO_HEIGHT_NAME,
+    width = Flag.VIDEO_WIDTH_NAME,
 ```
 
 #### `config.flagPreprocessHook(flag, value)`
 
-Customize this function to preprocess flags or their values. Return values should contain values that are present in `config.flagMap` and `config.flagValueMap`.
+Customize this function to preprocess flags or their values. Return values should contain values that are present in `config.flagVideoMap` or `config.flagImageMap` and `config.flagValueMap`.
 
 #### `config.flagsDelimiter`
 
@@ -306,7 +300,7 @@ Character that is used to separate flag name from the value, e.g. underscores in
 
 #### `config.flagValueMap`
 
-Similar to `config.flagMap` above, but for non-number flag *values* rather than flag names.
+Similar to `config.flagVideoMap` above, but for non-number flag *values* rather than flag names.
 
 Default flag values, e.g. `c_pad` or `c_lpad`, also `b_blurred`:
 

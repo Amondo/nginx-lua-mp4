@@ -46,26 +46,31 @@ end
 ---@param flags table
 ---@return string
 local function buildImageProcessingCommand(config, file, flags)
-  local crop = flags[Flag.IMAGE_CROP_NAME].value
-  local gravity = flags[Flag.IMAGE_GRAVITY_NAME].value
-  local x = flags[Flag.IMAGE_X_NAME].value
-  local y = flags[Flag.IMAGE_Y_NAME].value
-  local width = flags[Flag.IMAGE_WIDTH_NAME].value
-  local height = flags[Flag.IMAGE_HEIGHT_NAME].value
-  local radius = flags[Flag.IMAGE_RADIUS_NAME].value
-  local quality = flags[Flag.IMAGE_QUALITY_NAME].value
-  local minpad = flags[Flag.IMAGE_MINPAD_NAME].value
+  local crop = flags[Flag.IMAGE_CROP_NAME] and flags[Flag.IMAGE_CROP_NAME].value
+  local gravity = flags[Flag.IMAGE_GRAVITY_NAME] and flags[Flag.IMAGE_GRAVITY_NAME].value
+  local x = flags[Flag.IMAGE_X_NAME] and flags[Flag.IMAGE_X_NAME].value
+  local y = flags[Flag.IMAGE_Y_NAME] and flags[Flag.IMAGE_Y_NAME].value
+  local width = flags[Flag.IMAGE_WIDTH_NAME] and flags[Flag.IMAGE_WIDTH_NAME].value
+  local height = flags[Flag.IMAGE_HEIGHT_NAME] and flags[Flag.IMAGE_HEIGHT_NAME].value
+  local radius = flags[Flag.IMAGE_RADIUS_NAME] and flags[Flag.IMAGE_RADIUS_NAME].value
+  local quality = flags[Flag.IMAGE_QUALITY_NAME] and flags[Flag.IMAGE_QUALITY_NAME].value
+  local minpad = flags[Flag.IMAGE_MINPAD_NAME] and flags[Flag.IMAGE_MINPAD_NAME].value
 
   -- Construct a command
   local command = ''
-  local executorWithPreset = config.magick ..
-      ' -define png:exclude-chunks=date,time' ..
-      ' -quality ' .. quality ..
-      ' -gravity ' .. gravity .. ' '
+  local executorWithPreset = config.magick .. ' -define png:exclude-chunks=date,time'
   local canvas = getCanvas(config, file, flags)
   local image = file.originalFilePath .. ' -modulate 100,120,100'
   local mask = getMask(radius)
   local dimensions = (width or '') .. 'x' .. (height or '')
+
+  if quality then
+    executorWithPreset = executorWithPreset .. ' -quality ' .. quality .. ' '
+  end
+
+  if gravity then
+    executorWithPreset = executorWithPreset .. ' -gravity ' .. gravity .. ' '
+  end
 
   if crop == 'fill' and (width or height) then
     command = executorWithPreset ..
@@ -120,8 +125,6 @@ local function buildImageProcessingCommand(config, file, flags)
   end
 
   if command and command ~= '' then
-    os.execute('mkdir -p ' .. file.cacheDir)
-
     if config.logTime then
       command = 'time ' .. command
     end
@@ -148,7 +151,166 @@ end
 ---@param flags table
 ---@return string
 local function buildVideoProcessingCommand(config, file, flags)
-  return ''
+  local crop = flags[Flag.VIDEO_CROP_NAME] and flags[Flag.VIDEO_CROP_NAME].value
+  local background = flags[Flag.VIDEO_BACKGROUND_NAME] and flags[Flag.VIDEO_BACKGROUND_NAME].value
+  local x = flags[Flag.VIDEO_X_NAME] and flags[Flag.VIDEO_X_NAME].value
+  local y = flags[Flag.VIDEO_Y_NAME] and flags[Flag.VIDEO_Y_NAME].value
+  local width = flags[Flag.VIDEO_WIDTH_NAME] and flags[Flag.VIDEO_WIDTH_NAME].value
+  local height = flags[Flag.VIDEO_HEIGHT_NAME] and flags[Flag.VIDEO_HEIGHT_NAME].value
+  local preset = ''
+
+  -- setting x264 preset
+  if config.ffmpegPreset ~= '' then
+    preset = ' -preset ' .. config.ffmpegPreset .. ' '
+  end
+
+  local command = ''
+
+  if background == 'blur' and crop == 'limited_padding' and width and height then
+    -- scale + padded (no upscale) + blurred bg
+    command = config.ffmpeg ..
+        ' -i ' ..
+        file.originalFilePath ..
+        ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' ..
+        width ..
+        '\\,iw*(max(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):max(' ..
+        height ..
+        '\\,ih*(max(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' ..
+        width ..
+        ':' ..
+        height ..
+        ', setsar=1[background];[second]scale=min(' ..
+        width ..
+        '\\,iw):min(' ..
+        height ..
+        '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' ..
+        (y or '(H-h)/2') ..
+        ':x=' .. (x or '(W-w)/2') .. '" -c:a copy ' .. preset .. file.cachedFilePath
+  elseif background == 'blur' and crop == 'padding' and width and height then
+    -- scale + padded (with upscale) + blurred bg
+    command = config.ffmpeg ..
+        ' -i ' ..
+        file.originalFilePath ..
+        ' -filter_complex "split [first][second];[first]hue=b=-1,boxblur=20, scale=max(' ..
+        width ..
+        '\\,iw*(max(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):max(' ..
+        height ..
+        '\\,ih*(max(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2, crop=' ..
+        width ..
+        ':' ..
+        height ..
+        ', setsar=1[background];[second]scale=min(' ..
+        width ..
+        '\\,iw*(min(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):min(' ..
+        height ..
+        '\\,ih*(min(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' ..
+        (y or '(H-h)/2') ..
+        ':x=' .. (x or '(W-w)/2') .. '" -c:a copy ' .. preset .. file.cachedFilePath
+  elseif crop == 'limited_padding' and width and height then
+    -- scale (no upscale) with padding (blackbox)
+    command = config.ffmpeg ..
+        ' -i ' ..
+        file.originalFilePath ..
+        ' -filter_complex "scale=min(' ..
+        width ..
+        '\\,iw):min(' ..
+        height ..
+        '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1,pad=' ..
+        width ..
+        ':' ..
+        height ..
+        ':y=' ..
+        (y or '-1') ..
+        ':x=' .. (x or '-1') .. ':color=black" -c:a copy ' .. preset .. file.cachedFilePath
+  elseif crop == 'padding' and width and height then
+    -- scale (with upscale) with padding (blackbox)
+    command = config.ffmpeg ..
+        ' -i ' ..
+        file.originalFilePath ..
+        ' -filter_complex "scale=min(' ..
+        width ..
+        '\\,iw*(min(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):min(' ..
+        height ..
+        '\\,ih*(min(' ..
+        width ..
+        '/iw\\,' ..
+        height ..
+        '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1,pad=' ..
+        width ..
+        ':' ..
+        height ..
+        ':y=' ..
+        (y or '-1') ..
+        ':x=' .. (x or '-1') .. ':color=black" -c:a copy ' .. preset .. file.cachedFilePath
+  elseif width and height then
+    -- simple scale (no aspect ratio)
+    command = config.ffmpeg ..
+        ' -i ' ..
+        file.originalFilePath ..
+        ' -filter_complex "scale=' ..
+        width ..
+        ':' ..
+        height ..
+        ':force_divisible_by=2:force_original_aspect_ratio=disable,setsar=1" -c:a copy ' ..
+        preset .. file.cachedFilePath
+  elseif height then
+    -- simple one-side scale (h)
+    command = config.ffmpeg ..
+        ' -i ' ..
+        file.originalFilePath ..
+        ' -filter_complex "scale=-1:' ..
+        height ..
+        ':force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' ..
+        preset .. file.cachedFilePath
+  elseif width then
+    -- simple one-side scale (w)
+    command = config.ffmpeg ..
+        ' -i ' ..
+        file.originalFilePath ..
+        ' -filter_complex "scale=' ..
+        width ..
+        ':-1:force_divisible_by=2:force_original_aspect_ratio=decrease,setsar=1" -c:a copy ' ..
+        preset .. file.cachedFilePath
+  end
+
+  if command and command ~= '' then
+    if config.logFfmpegOutput == false then
+      command = command .. ' ' .. config.ffmpegDevNull
+    end
+    if config.logTime then
+      command = 'time ' .. command
+    end
+  end
+
+  return command
 end
 
 -- Build command

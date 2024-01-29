@@ -3,6 +3,21 @@ local File = {}
 
 File.IMAGE_TYPE = 'image'
 File.VIDEO_TYPE = 'video'
+File.TYPE_EXTENSION_MAP = {
+  -- Video
+  mp4 = File.VIDEO_TYPE,
+  -- Image
+  jpg = File.IMAGE_TYPE,
+  jpeg = File.IMAGE_TYPE,
+  png = File.IMAGE_TYPE,
+  gif = File.IMAGE_TYPE,
+  bmp = File.IMAGE_TYPE,
+  tif = File.IMAGE_TYPE,
+  tiff = File.IMAGE_TYPE,
+  svg = File.IMAGE_TYPE,
+  pdf = File.IMAGE_TYPE,
+  webp = File.IMAGE_TYPE,
+}
 
 -- Coalesce flag values. All flag values are set at this moment
 ---@param flag table
@@ -19,10 +34,7 @@ end
 ---@param flags table
 ---@return string
 local function buildCacheDirPath(basePath, flags)
-  if utils.isTableEmpty(flags) then
-    return basePath
-  end
-
+  local path = basePath
   local flagNamesOrdered = {}
 
   -- Add the flag name to the ordered list
@@ -36,32 +48,41 @@ local function buildCacheDirPath(basePath, flags)
   table.sort(flagNamesOrdered)
 
   -- Generate the options path
-  local optionsPath = ''
-
   for _, flagName in ipairs(flagNamesOrdered) do
     local pathFragment = coalesceFlag(flags[flagName])
     if pathFragment ~= '' then
-      optionsPath = optionsPath .. pathFragment .. '/'
+      path = path .. pathFragment .. '/'
     end
   end
 
-  return basePath .. optionsPath
+  return path
 end
 
 -- Base class method new
-function File.new(config, prefix, postfix, id, extension, type, flags)
+function File.new(config, prefix, postfix, id, extension)
   local self = {}
   self.config = config
   self.id = id
-  self.type = type
+  self.type = File.TYPE_EXTENSION_MAP[extension]
   self.extension = extension
   self.name = id .. '.' .. extension
   self.originalDir = config.mediaBaseFilepath .. prefix .. postfix .. id .. '/' .. extension .. '/'
   self.originalFilePath = self.originalDir .. self.name
-  self.cacheDir = buildCacheDirPath(self.originalDir, flags)
-  self.cachedFilePath = self.cacheDir .. self.name
+  self.cacheDir = self.originalDir
+  self.cachedFilePath = self.originalFilePath
+  self.upstreamPath = nil
+  if config.downloadOriginals then
+    self.upstreamPath = config.getOriginalsUpstreamPath(prefix, postfix, self.name)
+  end
+
   setmetatable(self, { __index = File })
   return self
+end
+
+---Sets cache dir path
+function File:updateCacheDirPath(flags)
+  self.cacheDir = buildCacheDirPath(self.originalDir, flags)
+  self.cachedFilePath = self.cacheDir .. self.name
 end
 
 ---Checks file is cached
