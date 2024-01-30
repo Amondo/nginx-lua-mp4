@@ -59,6 +59,19 @@ local function main()
   log('MediaExtension: ' .. mediaExtension)
   log('MediaType: ' .. file.type)
 
+  local flags = {}
+  local flagMapper = {}
+  local valueMapper = config.flagValueMap
+
+  if file.type == File.IMAGE_TYPE then
+    flagMapper = config.flagImageMap
+  elseif file.type == File.VIDEO_TYPE then
+    flagMapper = config.flagVideoMap
+  else
+    ngx.exit(ngx.HTTP_BAD_REQUEST)
+  end
+
+  -- Serve original if there are no flags
   if luampFlags == '' then
     -- Check if the original file exists
     if not file:hasOriginal() then
@@ -76,25 +89,12 @@ local function main()
     ngx.exec('/luamp-cache', { luamp_cached_file_path = file.originalFilePath })
   end
 
-  local flags = {}
-  local flagMapper = {}
-  local valueMapper = {}
-
-  if file.type == File.IMAGE_TYPE then
-    flags = {
-      [Flag.IMAGE_BACKGROUND_NAME] = Flag.new(config, Flag.IMAGE_BACKGROUND_NAME, 'white'),
-      [Flag.IMAGE_GRAVITY_NAME] = Flag.new(config, Flag.IMAGE_GRAVITY_NAME, 'center'),
-      [Flag.IMAGE_X_NAME] = Flag.new(config, Flag.IMAGE_X_NAME, 0),
-      [Flag.IMAGE_Y_NAME] = Flag.new(config, Flag.IMAGE_Y_NAME, 0),
-      [Flag.IMAGE_QUALITY_NAME] = Flag.new(config, Flag.IMAGE_QUALITY_NAME, 80),
-    }
-    flagMapper = config.flagImageMap
-    valueMapper = config.flagValueMap
-  elseif file.type == File.VIDEO_TYPE then
-    flagMapper = config.flagVideoMap
-    valueMapper = config.flagValueMap
-  else
-    ngx.exit(ngx.HTTP_BAD_REQUEST)
+  -- Fill flags with defaults
+  for _, flagKey in pairs(flagMapper) do
+    local flag = Flag.new(flagKey)
+    if flag.value then
+      flags[flagKey] = flag
+    end
   end
 
   -- Parse flags into a table
@@ -104,29 +104,31 @@ local function main()
       f, v = config.flagPreprocessHook(f, v)
     end
 
-    local flagName = flagMapper[f]
-    if flagName then
-      flags[flagName] = Flag.new(config, flagName)
-      flags[flagName]:setValue(v, valueMapper)
+    local flagKey = flagMapper[f]
+    if flagKey then
+      if not flags[flagKey] then
+        flags[flagKey] = Flag.new(flagKey)
+      end
+      flags[flagKey]:setValue(v, valueMapper)
     end
   end
 
   -- Scale dimensions with respect to limits
-  local dpr = flags[Flag.IMAGE_DPR_NAME] or flags[Flag.VIDEO_DPR_NAME]
+  local dpr = flags[Flag.IMAGE_DPR_KEY] or flags[Flag.VIDEO_DPR_KEY]
   for flagName, _ in pairs(flags) do
     local flag = flags[flagName]
     if flag.isScalable and dpr and dpr.value then
       log('Scaling a flag: ' .. flagName)
-      flag:scale(dpr.value)
+      flag:scale(config, dpr.value)
     end
   end
 
   -- Calculate absolute x/y for values in (0, 1) range
   if file.type == File.VIDEO_TYPE then
-    local videoX = flags[Flag.VIDEO_X_NAME]
-    local videoY = flags[Flag.VIDEO_Y_NAME]
-    local videoWidth = flags[Flag.VIDEO_WIDTH_NAME]
-    local videoHeight = flags[Flag.VIDEO_HEIGHT_NAME]
+    local videoX = flags[Flag.VIDEO_X_KEY]
+    local videoY = flags[Flag.VIDEO_Y_KEY]
+    local videoWidth = flags[Flag.VIDEO_WIDTH_KEY]
+    local videoHeight = flags[Flag.VIDEO_HEIGHT_KEY]
     if videoX and videoWidth then
       videoX.coordinateToAbsolute(videoWidth.value)
       log('Absolute x: ' .. videoX.value)

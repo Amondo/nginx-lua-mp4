@@ -1,4 +1,3 @@
-local utils = require('utils')
 local File = {}
 
 File.IMAGE_TYPE = 'image'

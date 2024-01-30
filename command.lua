@@ -5,7 +5,7 @@ local utils = require('utils')
 local Command = {}
 
 local function getCanvas(config, file, flags)
-  local background = flags[Flag.IMAGE_BACKGROUND_NAME].value
+  local background = flags[Flag.IMAGE_BACKGROUND_KEY] and flags[Flag.IMAGE_BACKGROUND_KEY].value
   local canvas = ''
 
   if background == 'auto' then
@@ -46,15 +46,15 @@ end
 ---@param flags table
 ---@return string
 local function buildImageProcessingCommand(config, file, flags)
-  local crop = flags[Flag.IMAGE_CROP_NAME] and flags[Flag.IMAGE_CROP_NAME].value
-  local gravity = flags[Flag.IMAGE_GRAVITY_NAME] and flags[Flag.IMAGE_GRAVITY_NAME].value
-  local x = flags[Flag.IMAGE_X_NAME] and flags[Flag.IMAGE_X_NAME].value
-  local y = flags[Flag.IMAGE_Y_NAME] and flags[Flag.IMAGE_Y_NAME].value
-  local width = flags[Flag.IMAGE_WIDTH_NAME] and flags[Flag.IMAGE_WIDTH_NAME].value
-  local height = flags[Flag.IMAGE_HEIGHT_NAME] and flags[Flag.IMAGE_HEIGHT_NAME].value
-  local radius = flags[Flag.IMAGE_RADIUS_NAME] and flags[Flag.IMAGE_RADIUS_NAME].value
-  local quality = flags[Flag.IMAGE_QUALITY_NAME] and flags[Flag.IMAGE_QUALITY_NAME].value
-  local minpad = flags[Flag.IMAGE_MINPAD_NAME] and flags[Flag.IMAGE_MINPAD_NAME].value
+  local crop = flags[Flag.IMAGE_CROP_KEY] and flags[Flag.IMAGE_CROP_KEY].value
+  local gravity = flags[Flag.IMAGE_GRAVITY_KEY] and flags[Flag.IMAGE_GRAVITY_KEY].value
+  local x = flags[Flag.IMAGE_X_KEY] and flags[Flag.IMAGE_X_KEY].value
+  local y = flags[Flag.IMAGE_Y_KEY] and flags[Flag.IMAGE_Y_KEY].value
+  local width = flags[Flag.IMAGE_WIDTH_KEY] and flags[Flag.IMAGE_WIDTH_KEY].value
+  local height = flags[Flag.IMAGE_HEIGHT_KEY] and flags[Flag.IMAGE_HEIGHT_KEY].value
+  local radius = flags[Flag.IMAGE_RADIUS_KEY] and flags[Flag.IMAGE_RADIUS_KEY].value
+  local quality = flags[Flag.IMAGE_QUALITY_KEY] and flags[Flag.IMAGE_QUALITY_KEY].value
+  local minpad = flags[Flag.IMAGE_MINPAD_KEY] and flags[Flag.IMAGE_MINPAD_KEY].value
 
   -- Construct a command
   local command = ''
@@ -151,12 +151,12 @@ end
 ---@param flags table
 ---@return string
 local function buildVideoProcessingCommand(config, file, flags)
-  local crop = flags[Flag.VIDEO_CROP_NAME] and flags[Flag.VIDEO_CROP_NAME].value
-  local background = flags[Flag.VIDEO_BACKGROUND_NAME] and flags[Flag.VIDEO_BACKGROUND_NAME].value
-  local x = flags[Flag.VIDEO_X_NAME] and flags[Flag.VIDEO_X_NAME].value
-  local y = flags[Flag.VIDEO_Y_NAME] and flags[Flag.VIDEO_Y_NAME].value
-  local width = flags[Flag.VIDEO_WIDTH_NAME] and flags[Flag.VIDEO_WIDTH_NAME].value
-  local height = flags[Flag.VIDEO_HEIGHT_NAME] and flags[Flag.VIDEO_HEIGHT_NAME].value
+  local crop = flags[Flag.VIDEO_CROP_KEY] and flags[Flag.VIDEO_CROP_KEY].value
+  local background = flags[Flag.VIDEO_BACKGROUND_KEY] and flags[Flag.VIDEO_BACKGROUND_KEY].value
+  local x = flags[Flag.VIDEO_X_KEY] and flags[Flag.VIDEO_X_KEY].value
+  local y = flags[Flag.VIDEO_Y_KEY] and flags[Flag.VIDEO_Y_KEY].value
+  local width = flags[Flag.VIDEO_WIDTH_KEY] and flags[Flag.VIDEO_WIDTH_KEY].value
+  local height = flags[Flag.VIDEO_HEIGHT_KEY] and flags[Flag.VIDEO_HEIGHT_KEY].value
   local preset = ''
 
   -- setting x264 preset

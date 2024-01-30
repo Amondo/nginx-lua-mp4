@@ -269,21 +269,21 @@ Use this table to customize how flags are called in your URLs. Defaults are one 
 One letter flags (except for DPR) if you want to use flags like `w_200,h_180,c_pad`:
 
 ```
-    c = Flag.VIDEO_CROP_NAME,
-    b = Flag.VIDEO_BACKGROUND_NAME,
-    dpr = Flag.VIDEO_DPR_NAME,
-    h = Flag.VIDEO_HEIGHT_NAME,
-    w = Flag.VIDEO_WIDTH_NAME,
+    c = Flag.VIDEO_CROP_KEY,
+    b = Flag.VIDEO_BACKGROUND_KEY,
+    dpr = Flag.VIDEO_DPR_KEY,
+    h = Flag.VIDEO_HEIGHT_KEY,
+    w = Flag.VIDEO_WIDTH_KEY,
 ```
 
 Full flags if you want to use flags like `width_200,height_180,crop_pad`:
 
 ```
-    crop = Flag.VIDEO_CROP_NAME,
-    background = Flag.VIDEO_BACKGROUND_NAME,
-    dpr = Flag.VIDEO_DPR_NAME,
-    height = Flag.VIDEO_HEIGHT_NAME,
-    width = Flag.VIDEO_WIDTH_NAME,
+    crop = Flag.VIDEO_CROP_KEY,
+    background = Flag.VIDEO_BACKGROUND_KEY,
+    dpr = Flag.VIDEO_DPR_KEY,
+    height = Flag.VIDEO_HEIGHT_KEY,
+    width = Flag.VIDEO_WIDTH_KEY,
 ```
 
 #### `config.flagPreprocessHook(flag, value)`

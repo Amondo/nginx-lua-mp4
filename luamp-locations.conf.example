@@ -18,7 +18,6 @@ location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)
     try_files $uri @luamp_media_processor;
 }
 
-
 # image process/transcode location
 location @luamp_media_processor {
     set $luamp_original_file "";

@@ -42,27 +42,29 @@ config.flagValueDelimiter = '_'
 -- some flags in use on the front end. Customize the left part of the table.
 -- eg `['cropping'] = 'crop'` to use `cropping` instead of the default `c`
 config.flagVideoMap = {
-    b = Flag.VIDEO_BACKGROUND_NAME,
-    c = Flag.VIDEO_CROP_NAME,
-    dpr = Flag.VIDEO_DPR_NAME,
-    x = Flag.VIDEO_X_NAME,
-    y = Flag.VIDEO_Y_NAME,
-    h = Flag.VIDEO_HEIGHT_NAME,
-    w = Flag.VIDEO_WIDTH_NAME,
+    b = Flag.VIDEO_BACKGROUND_KEY,
+    c = Flag.VIDEO_CROP_KEY,
+    dpr = Flag.VIDEO_DPR_KEY,
+    x = Flag.VIDEO_X_KEY,
+    y = Flag.VIDEO_Y_KEY,
+    h = Flag.VIDEO_HEIGHT_KEY,
+    w = Flag.VIDEO_WIDTH_KEY,
+    r = Flag.VIDEO_RADIUS_KEY,
+    minp = Flag.VIDEO_MINPAD_KEY,
 }
 
 config.flagImageMap = {
-    b = Flag.IMAGE_BACKGROUND_NAME,
-    c = Flag.IMAGE_CROP_NAME,
-    dpr = Flag.IMAGE_DPR_NAME,
-    g = Flag.IMAGE_GRAVITY_NAME,
-    x = Flag.IMAGE_X_NAME,
-    y = Flag.IMAGE_Y_NAME,
-    h = Flag.IMAGE_HEIGHT_NAME,
-    w = Flag.IMAGE_WIDTH_NAME,
-    r = Flag.IMAGE_RADIUS_NAME,
-    q = Flag.IMAGE_QUALITY_NAME,
-    minp = Flag.IMAGE_MINPAD_NAME,
+    b = Flag.IMAGE_BACKGROUND_KEY,
+    c = Flag.IMAGE_CROP_KEY,
+    dpr = Flag.IMAGE_DPR_KEY,
+    g = Flag.IMAGE_GRAVITY_KEY,
+    x = Flag.IMAGE_X_KEY,
+    y = Flag.IMAGE_Y_KEY,
+    h = Flag.IMAGE_HEIGHT_KEY,
+    w = Flag.IMAGE_WIDTH_KEY,
+    r = Flag.IMAGE_RADIUS_KEY,
+    q = Flag.IMAGE_QUALITY_KEY,
+    minp = Flag.IMAGE_MINPAD_KEY,
 }
 
 -- override URL flag values. Useful when you migrate from another transcoding solution and already have

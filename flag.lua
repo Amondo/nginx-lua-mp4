@@ -1,56 +1,176 @@
-local Flag                 = {}
+local Flag = {
+  -- IMAGE
+  IMAGE_BACKGROUND_KEY = 'image_background',
+  IMAGE_CROP_KEY       = 'image_crop',
+  IMAGE_DPR_KEY        = 'image_dpr',
+  IMAGE_GRAVITY_KEY    = 'image_gravity',
+  IMAGE_X_KEY          = 'image_x',
+  IMAGE_Y_KEY          = 'image_y',
+  IMAGE_HEIGHT_KEY     = 'image_height',
+  IMAGE_WIDTH_KEY      = 'image_width',
+  IMAGE_RADIUS_KEY     = 'image_radius',
+  IMAGE_QUALITY_KEY    = 'image_quality',
+  IMAGE_MINPAD_KEY     = 'image_minpad',
 
--- IMAGE
-Flag.IMAGE_BACKGROUND_NAME = 'background'
-Flag.IMAGE_CROP_NAME       = 'crop'
-Flag.IMAGE_DPR_NAME        = 'dpr'
-Flag.IMAGE_GRAVITY_NAME    = 'gravity'
-Flag.IMAGE_X_NAME          = 'x'
-Flag.IMAGE_Y_NAME          = 'y'
-Flag.IMAGE_HEIGHT_NAME     = 'height'
-Flag.IMAGE_WIDTH_NAME      = 'width'
-Flag.IMAGE_RADIUS_NAME     = 'radius'
-Flag.IMAGE_QUALITY_NAME    = 'quality'
-Flag.IMAGE_MINPAD_NAME     = 'minpad'
+  -- VIDEO
+  VIDEO_BACKGROUND_KEY = 'video_background',
+  VIDEO_CROP_KEY       = 'video_crop',
+  VIDEO_DPR_KEY        = 'video_dpr',
+  VIDEO_X_KEY          = 'video_x',
+  VIDEO_Y_KEY          = 'video_y',
+  VIDEO_HEIGHT_KEY     = 'video_height',
+  VIDEO_WIDTH_KEY      = 'video_width',
+  VIDEO_RADIUS_KEY     = 'video_radius',
+  VIDEO_MINPAD_KEY     = 'video_minpad',
+}
 
--- VIDEO
-Flag.VIDEO_BACKGROUND_NAME = 'background'
-Flag.VIDEO_CROP_NAME       = 'crop'
-Flag.VIDEO_DPR_NAME        = 'dpr'
-Flag.VIDEO_X_NAME          = 'x'
-Flag.VIDEO_Y_NAME          = 'y'
-Flag.VIDEO_HEIGHT_NAME     = 'height'
-Flag.VIDEO_WIDTH_NAME      = 'width'
+
+Flag.DEFAULTS = {
+  [Flag.IMAGE_BACKGROUND_KEY] = {
+    name = 'background',
+    value = 'white',
+    isScalable = false,
+    makeDir = true,
+  },
+  [Flag.IMAGE_CROP_KEY] = {
+    name = 'crop',
+    value = nil,
+    isScalable = false,
+    makeDir = true,
+  },
+  [Flag.IMAGE_DPR_KEY] = {
+    name = 'dpr',
+    value = nil,
+    isScalable = false,
+    makeDir = false,
+  },
+  [Flag.IMAGE_GRAVITY_KEY] = {
+    name = 'gravity',
+    value = 'center',
+    isScalable = false,
+    makeDir = true,
+  },
+  [Flag.IMAGE_X_KEY] = {
+    name = 'x',
+    value = 0,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.IMAGE_Y_KEY] = {
+    name = 'y',
+    value = 0,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.IMAGE_HEIGHT_KEY] = {
+    name = 'height',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.IMAGE_WIDTH_KEY] = {
+    name = 'width',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.IMAGE_RADIUS_KEY] = {
+    name = 'radius',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.IMAGE_QUALITY_KEY] = {
+    name = 'quality',
+    value = 80,
+    isScalable = false,
+    makeDir = true,
+  },
+  [Flag.IMAGE_MINPAD_KEY] = {
+    name = 'minpad',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+
+  -- VIDEO
+  [Flag.VIDEO_BACKGROUND_KEY] = {
+    name = 'background',
+    value = nil,
+    isScalable = false,
+    makeDir = true,
+  },
+  [Flag.VIDEO_CROP_KEY] = {
+    name = 'crop',
+    value = nil,
+    isScalable = false,
+    makeDir = true,
+  },
+  [Flag.VIDEO_DPR_KEY] = {
+    name = 'dpr',
+    value = nil,
+    isScalable = false,
+    makeDir = false,
+  },
+  [Flag.VIDEO_X_KEY] = {
+    name = 'x',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.VIDEO_Y_KEY] = {
+    name = 'y',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.VIDEO_HEIGHT_KEY] = {
+    name = 'height',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.VIDEO_WIDTH_KEY] = {
+    name = 'width',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.VIDEO_RADIUS_KEY] = {
+    name = 'radius',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+  [Flag.VIDEO_MINPAD_KEY] = {
+    name = 'minpad',
+    value = nil,
+    isScalable = true,
+    makeDir = true,
+  },
+}
 
 -- Base class method new
-function Flag.new(config, name, value)
+function Flag.new(key, value)
   local self = {}
-  self.config = config
-  self.name = name
-  self.value = value
-  self.isScalable = false
-  self.makeDir = true
 
-  if self.name == Flag.IMAGE_HEIGHT_NAME
-      or self.name == Flag.IMAGE_WIDTH_NAME
-      or self.name == Flag.IMAGE_X_NAME
-      or self.name == Flag.IMAGE_Y_NAME
-      or self.name == Flag.IMAGE_RADIUS_NAME
-      or self.name == Flag.IMAGE_MINPAD_NAME
-      or self.name == Flag.VIDEO_HEIGHT_NAME
-      or self.name == Flag.VIDEO_WIDTH_NAME
-      or self.name == Flag.VIDEO_X_NAME
-      or self.name == Flag.VIDEO_Y_NAME
-  then
-    self.isScalable = true
+  local defaults = Flag.DEFAULTS[key]
+
+  if defaults then
+    self.name = defaults.name
+    self.value = defaults.value
+    self.key = key
+    self.isScalable = defaults.isScalable
+    self.makeDir = defaults.makeDir
+
+    -- if value and value ~= '' then
+    --   -- Check if it is an allowed text flag or cast to a number
+    --   self.value = valueMapper[value] or tonumber(value)
+    -- end
+
+    setmetatable(self, { __index = Flag })
+    return self
   end
-
-  if self.name == Flag.IMAGE_DPR_NAME or self.name == Flag.VIDEO_DPR_NAME then
-    self.makeDir = false
-  end
-
-  setmetatable(self, { __index = Flag })
-  return self
 end
 
 -- Derived class method setValue
@@ -65,14 +185,14 @@ end
 
 -- Scale dimension
 ---@param dpr number
-function Flag:scale(dpr)
+function Flag:scale(config, dpr)
   if self.value and self.value ~= '' then
     local scaledValue = math.ceil(self.value * (dpr or 1))
 
-    if self.name == Flag.IMAGE_X_NAME
-        or self.name == Flag.IMAGE_Y_NAME
-        or self.name == Flag.VIDEO_X_NAME
-        or self.name == Flag.VIDEO_Y_NAME
+    if self.key == Flag.IMAGE_X_KEY
+        or self.key == Flag.IMAGE_Y_KEY
+        or self.key == Flag.VIDEO_X_KEY
+        or self.key == Flag.VIDEO_Y_KEY
     then
       if self.value >= 1 then
         self.value = scaledValue
@@ -82,32 +202,32 @@ function Flag:scale(dpr)
     end
 
     -- Apply limits
-    if self.name == Flag.IMAGE_HEIGHT_NAME
-        and self.config.maxImageHeight
-        and self.value > self.config.maxImageHeight
+    if self.key == Flag.IMAGE_HEIGHT_KEY
+        and config.maxImageHeight
+        and self.value > config.maxImageHeight
     then
-      self.value = self.config.maxImageHeight
+      self.value = config.maxImageHeight
     end
 
-    if self.name == Flag.IMAGE_WIDTH_NAME
-        and self.config.maxImageWidth
-        and self.value > self.config.maxImageWidth
+    if self.key == Flag.IMAGE_WIDTH_KEY
+        and config.maxImageWidth
+        and self.value > config.maxImageWidth
     then
-      self.value = self.config.maxImageWidth
+      self.value = config.maxImageWidth
     end
 
-    if self.name == Flag.VIDEO_HEIGHT_NAME
-        and self.config.maxVideoHeight
-        and self.value > self.config.maxVideoHeight
+    if self.key == Flag.VIDEO_HEIGHT_KEY
+        and config.maxVideoHeight
+        and self.value > config.maxVideoHeight
     then
-      self.value = self.config.maxVideoHeight
+      self.value = config.maxVideoHeight
     end
 
-    if self.name == Flag.VIDEO_WIDTH_NAME
-        and self.config.maxVideoWidth
-        and self.value > self.config.maxVideoWidth
+    if self.key == Flag.VIDEO_WIDTH_KEY
+        and config.maxVideoWidth
+        and self.value > config.maxVideoWidth
     then
-      self.value = self.config.maxVideoWidth
+      self.value = config.maxVideoWidth
     end
   end
 end
@@ -116,7 +236,7 @@ end
 ---@param dimension number
 function Flag:coordinateToAbsolute(dimension)
   if dimension
-      and (self.name == Flag.VIDEO_X_NAME or self.name == Flag.VIDEO_Y_NAME)
+      and (self.key == Flag.VIDEO_X_KEY or self.key == Flag.VIDEO_Y_KEY)
       and self.value
       and self.value > 0
       and self.value < 1
