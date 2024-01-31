@@ -1,7 +1,7 @@
 source test.config
 CURRENT_DIR=$(pwd)
-VIDEO_FILE="leva_test_video_luamp_do_not_rename.mp4"
-IMAGE_FILE="leva_test_image_luamp_do_not_rename"
+VIDEO_FILE="leva_test_video_300x400.mp4"
+IMAGE_FILE="leva_test_image_836x776"
 IMAGE_FORMATS=("jpeg")
 LINKS_VIDEO=($(cat $CURRENT_DIR/links_video))
 LINKS_IMAGES=($(cat $CURRENT_DIR/links_image))

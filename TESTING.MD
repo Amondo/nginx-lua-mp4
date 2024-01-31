@@ -7,8 +7,8 @@ Copy `links_video.example` into `links_video` and set parameters in it.
 For the script to work correctly, you must place two test files in the directory specified in the **`config.lua`** file under **`config.mediaBaseFilepath`**.
 
 
-- **`leva_test_video_luamp_do_not_rename.mp4`** - for video tests.
-- **`leva_test_image_lua_do_not_rename.jpeg`** - for image tests.
+- **`leva_test_video_300x400.mp4`** - for video tests.
+- **`leva_test_image_836x776.jpeg`** - for image tests.
 
 The script should only be run from the `tests` directory.
 

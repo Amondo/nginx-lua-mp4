@@ -96,7 +96,7 @@ Flag.DEFAULTS = {
   -- VIDEO
   [Flag.VIDEO_BACKGROUND_KEY] = {
     name = 'background',
-    value = nil,
+    value = 'black',
     isScalable = false,
     makeDir = true,
   },
