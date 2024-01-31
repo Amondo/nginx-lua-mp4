@@ -157,6 +157,7 @@ local function buildVideoProcessingCommand(config, file, flags)
   local y = flags[Flag.VIDEO_Y_KEY] and flags[Flag.VIDEO_Y_KEY].value
   local width = flags[Flag.VIDEO_WIDTH_KEY] and flags[Flag.VIDEO_WIDTH_KEY].value
   local height = flags[Flag.VIDEO_HEIGHT_KEY] and flags[Flag.VIDEO_HEIGHT_KEY].value
+  local minpad = flags[Flag.VIDEO_MINPAD_KEY] and flags[Flag.VIDEO_MINPAD_KEY].value
   local preset = ''
 
   -- setting x264 preset
@@ -166,7 +167,7 @@ local function buildVideoProcessingCommand(config, file, flags)
 
   local command = ''
 
-  if background == 'blur' and crop == 'limited_padding' and width and height then
+  if background == 'blurred' and crop == 'limited_padding' and width and height then
     -- scale + padded (no upscale) + blurred bg
     command = config.ffmpeg ..
         ' -i ' ..
@@ -194,7 +195,7 @@ local function buildVideoProcessingCommand(config, file, flags)
         '\\,ih):force_original_aspect_ratio=decrease:force_divisible_by=2,setsar=1[foreground];[background][foreground]overlay=y=' ..
         (y or '(H-h)/2') ..
         ':x=' .. (x or '(W-w)/2') .. '" -c:a copy ' .. preset .. file.cachedFilePath
-  elseif background == 'blur' and crop == 'padding' and width and height then
+  elseif background == 'blurred' and crop == 'padding' and width and height then
     -- scale + padded (with upscale) + blurred bg
     command = config.ffmpeg ..
         ' -i ' ..
