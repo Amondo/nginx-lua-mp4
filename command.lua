@@ -100,13 +100,15 @@ local function buildImageProcessingCommand(config, file, flags)
         ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
         ' \\) -compose over -composite'
   elseif crop == 'padding' and (width or height) then
+    local imageWidth = width and (width - 2 * (minpad or 0))
+    local imageHeight = height and (height - 2 * (minpad or 0))
     command = executorWithPreset ..
         canvas ..
         ' -resize ' .. dimensions .. '^' ..
         ' -crop ' .. dimensions .. '+0+0 ' ..
         ' \\( ' ..
         image ..
-        ' -resize ' .. dimensions ..
+        ' -resize ' .. (imageWidth or '') .. 'x' .. (imageHeight or '') ..
         ' -set option:origwidth %w' ..
         ' -set option:origheight %h' ..
         ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
