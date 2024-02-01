@@ -65,7 +65,7 @@ function File.new(config, prefix, postfix, id, extension)
   self.type = File.TYPE_EXTENSION_MAP[extension]
   self.extension = extension
   self.name = id .. '.' .. extension
-  self.originalDir = config.mediaBaseFilepath .. prefix .. postfix .. id .. '/' .. extension .. '/'
+  self.originalDir = config.mediaBaseFilepath .. prefix .. postfix
   self.originalFilePath = self.originalDir .. self.name
   self.cacheDir = self.originalDir
   self.cachedFilePath = self.originalFilePath

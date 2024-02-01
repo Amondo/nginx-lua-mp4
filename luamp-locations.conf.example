@@ -1,17 +1,8 @@
 # This file contains the shared location blocks for both HTTP and HTTPS servers
 
-# video location
-location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(mp4))$ {
-    set $luamp_original_file "";
-    set $luamp_transcoded_file "";
-    # these are needed to be set if you did not use them in regex matching location
-    # set $luamp_prefix "";
-    # set $luamp_postfix "";
-    try_files $uri @luamp_media_processor;
-}
-
-# image location
-location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+# media location
+location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/v]+)\/|\/|)(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp|mp4))$ {
+    root html/media;
     # these are needed to be set if you did not use them in regex matching location
     # set $luamp_prefix "";
     # set $luamp_postfix "";
