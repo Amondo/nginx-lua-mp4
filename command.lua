@@ -167,9 +167,14 @@ local function buildVideoProcessingCommand(config, file, flags)
   local command = ''
   local filter = ''
 
+  local videoWidth = width - 2 * (minpad or 0)
+  local videoHeight = height - 2 * (minpad or 0)
+  local bg = ''
+  if background then
+    bg = ':color=' .. background
+  end
+
   if background == 'blurred' and crop == 'limited_padding' and width and height then
-    local videoWidth = width - 2 * (minpad or 0)
-    local videoHeight = height - 2 * (minpad or 0)
     -- scale + padded (no upscale) + blurred bg
     filter =
         'split [first][second];' ..
@@ -204,20 +209,14 @@ local function buildVideoProcessingCommand(config, file, flags)
         ',crop=' .. width .. ':' .. height .. ', setsar=1[background];' ..
         -- prepare foreground
         '[second]' ..
-        'scale=min(' .. width .. '\\,iw*(min(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
-        ':min(' .. height .. '\\,ih*(min(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
+        'scale=min(' .. videoWidth .. '\\,iw*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
+        ':min(' .. videoHeight .. '\\,ih*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
         ':force_original_aspect_ratio=increase' ..
         ':force_divisible_by=2' ..
         ',setsar=1[foreground];' ..
         -- compose
         '[background][foreground]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
   elseif crop == 'limited_padding' and width and height then
-    local videoWidth = width - 2 * (minpad or 0)
-    local videoHeight = height - 2 * (minpad or 0)
-    local bg = ''
-    if background then
-      bg = ':color=' .. background
-    end
     -- scale (no upscale) with padding (blackbox)
     filter =
         'scale=min(' .. videoWidth .. '\\,iw):min(' .. videoHeight .. '\\,ih)' ..
@@ -226,14 +225,10 @@ local function buildVideoProcessingCommand(config, file, flags)
         ',setsar=1' ..
         ',pad=' .. width .. ':' .. height .. ':y=' .. (y or '-1') .. ':x=' .. (x or '-1') .. bg
   elseif crop == 'padding' and width and height then
-    local bg = ''
-    if background then
-      bg = ':color=' .. background
-    end
     -- scale (with upscale) with padding (blackbox)
     filter =
-        'scale=min(' .. width .. '\\,iw*(min(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
-        ':min(' .. height .. '\\,ih*(min(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
+        'scale=min(' .. videoWidth .. '\\,iw*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
+        ':min(' .. videoHeight .. '\\,ih*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
         ':force_original_aspect_ratio=increase' ..
         ':force_divisible_by=2' ..
         ',setsar=1' ..
