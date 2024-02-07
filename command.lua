@@ -161,6 +161,7 @@ local function buildVideoProcessingCommand(config, file, flags)
   local y = flags[Flag.VIDEO_Y_KEY] and flags[Flag.VIDEO_Y_KEY].value
   local width = flags[Flag.VIDEO_WIDTH_KEY] and flags[Flag.VIDEO_WIDTH_KEY].value
   local height = flags[Flag.VIDEO_HEIGHT_KEY] and flags[Flag.VIDEO_HEIGHT_KEY].value
+  local radius = flags[Flag.VIDEO_RADIUS_KEY] and flags[Flag.VIDEO_RADIUS_KEY].value
   local minpad = flags[Flag.VIDEO_MINPAD_KEY] and flags[Flag.VIDEO_MINPAD_KEY].value
 
   -- Construct a command
@@ -169,12 +170,32 @@ local function buildVideoProcessingCommand(config, file, flags)
 
   local videoWidth = width - 2 * (minpad or 0)
   local videoHeight = height - 2 * (minpad or 0)
+
   local bg = ''
   if background then
     bg = ':color=' .. background
   end
 
   if background == 'blurred' and crop == 'limited_padding' and width and height then
+    local foreground = 'scale=min(' .. videoWidth .. '\\,iw):min(' .. videoHeight .. '\\,ih)' ..
+        ':force_original_aspect_ratio=decrease' ..
+        ':force_divisible_by=2' ..
+        ',setsar=1'
+    if radius then
+      local doubleRadius = 2 * radius
+      foreground = 'scale=min(' .. 2 * videoWidth .. '\\,2*iw):min(' .. 2 * videoHeight .. '\\,2*ih)' ..
+          ':force_original_aspect_ratio=decrease' ..
+          ':force_divisible_by=2' ..
+          ",geq=lum='p(X,Y)'" ..
+          ":a='if(gt(abs(W/2-X),W/2-" .. doubleRadius .. ')*gt(abs(H/2-Y),H/2-' .. doubleRadius .. ')' ..
+          ',if(lte(hypot(' ..
+          doubleRadius .. '-(W/2-abs(W/2-X)),' ..
+          doubleRadius .. '-(H/2-abs(H/2-Y))),' ..
+          doubleRadius .. "),255,0),255)'" ..
+          ',format=yuva420p' ..
+          ',scale=iw/2:ih/2' ..
+          ',setsar=1'
+    end
     -- scale + padded (no upscale) + blurred bg
     filter =
         'split [first][second];' ..
@@ -186,13 +207,12 @@ local function buildVideoProcessingCommand(config, file, flags)
         ':force_original_aspect_ratio=increase' ..
         ':force_divisible_by=2' ..
         ',crop=' .. width .. ':' .. height ..
-        ',setsar=1[background];' ..
+        ',setsar=1' ..
+        '[background];' ..
         -- prepare foreground
         '[second]' ..
-        'scale=min(' .. videoWidth .. '\\,iw):min(' .. videoHeight .. '\\,ih)' ..
-        ':force_original_aspect_ratio=decrease' ..
-        ':force_divisible_by=2' ..
-        ',setsar=1[foreground];' ..
+        foreground ..
+        '[foreground];' ..
         -- compose
         '[background][foreground]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
   elseif background == 'blurred' and crop == 'padding' and width and height then
@@ -206,14 +226,17 @@ local function buildVideoProcessingCommand(config, file, flags)
         ':max(' .. height .. '\\,ih*(max(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
         ':force_original_aspect_ratio=increase' ..
         ':force_divisible_by=2' ..
-        ',crop=' .. width .. ':' .. height .. ', setsar=1[background];' ..
+        ',crop=' .. width .. ':' .. height ..
+        ',setsar=1' ..
+        '[background];' ..
         -- prepare foreground
         '[second]' ..
         'scale=min(' .. videoWidth .. '\\,iw*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
         ':min(' .. videoHeight .. '\\,ih*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
         ':force_original_aspect_ratio=increase' ..
         ':force_divisible_by=2' ..
-        ',setsar=1[foreground];' ..
+        ',setsar=1' ..
+        '[foreground];' ..
         -- compose
         '[background][foreground]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
   elseif crop == 'limited_padding' and width and height then
