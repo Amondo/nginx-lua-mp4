@@ -119,19 +119,9 @@ local function main()
     end
   end
 
-  local dprFlag = flags[Flag.IMAGE_DPR_KEY] or flags[Flag.VIDEO_DPR_KEY]
-  local widthFlag = flags[Flag.IMAGE_WIDTH_KEY] or flags[Flag.VIDEO_WIDTH_KEY]
-  local heightFlag = flags[Flag.IMAGE_HEIGHT_KEY] or flags[Flag.VIDEO_HEIGHT_KEY]
-  local xFlag = flags[Flag.IMAGE_X_KEY] or flags[Flag.VIDEO_X_KEY]
-  local yFlag = flags[Flag.IMAGE_Y_KEY] or flags[Flag.VIDEO_Y_KEY]
-
-  local dpr = dprFlag and dprFlag.value or 1
-  local width = widthFlag and widthFlag.value or 0
-  local height = heightFlag and heightFlag.value or 0
-  local x = xFlag and xFlag.value
-  local y = yFlag and yFlag.value
-
   -- Scale dimensions with dpr
+  local dprFlag = flags[Flag.IMAGE_DPR_KEY] or flags[Flag.VIDEO_DPR_KEY]
+  local dpr = dprFlag and dprFlag.value or 1
   for flagName in pairs(flags) do
     local flag = flags[flagName]
     if flag.isScalable then
@@ -141,6 +131,14 @@ local function main()
   end
 
   -- Apply limits and scale
+  local widthFlag = flags[Flag.IMAGE_WIDTH_KEY] or flags[Flag.VIDEO_WIDTH_KEY]
+  local heightFlag = flags[Flag.IMAGE_HEIGHT_KEY] or flags[Flag.VIDEO_HEIGHT_KEY]
+  local xFlag = flags[Flag.IMAGE_X_KEY] or flags[Flag.VIDEO_X_KEY]
+  local yFlag = flags[Flag.IMAGE_Y_KEY] or flags[Flag.VIDEO_Y_KEY]
+  local width = widthFlag and widthFlag.value or 0
+  local height = heightFlag and heightFlag.value or 0
+  local x = xFlag and xFlag.value
+  local y = yFlag and yFlag.value
   local aspectRatio = 1
   local maxWidth = (file.type == File.VIDEO_TYPE and config.maxVideoWidth) or config.maxImageWidth or 0
   local maxHeight = (file.type == File.VIDEO_TYPE and config.maxVideoHeight) or config.maxImageHeight or 0
