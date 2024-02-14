@@ -40,7 +40,7 @@ Flag.DEFAULTS = {
   },
   [Flag.IMAGE_DPR_KEY] = {
     name = 'dpr',
-    value = nil,
+    value = 1,
     isScalable = false,
     makeDir = false,
   },
@@ -108,7 +108,7 @@ Flag.DEFAULTS = {
   },
   [Flag.VIDEO_DPR_KEY] = {
     name = 'dpr',
-    value = nil,
+    value = 1,
     isScalable = false,
     makeDir = false,
   },
@@ -175,60 +175,33 @@ end
 
 -- Derived class method setValue
 ---@param value string | number
----@param valueMapper string | number
+---@param valueMapper table
 function Flag:setValue(value, valueMapper)
   if value and value ~= '' then
     -- Check if it is an allowed text flag or cast to a number
-    self.value = valueMapper[value] or tonumber(value)
+    self.value = (valueMapper and valueMapper[value]) or tonumber(value)
   end
 end
 
 -- Scale dimension
----@param dpr number
-function Flag:scale(config, dpr)
-  if self.value and self.value ~= '' then
-    local scaledValue = math.ceil(self.value * (dpr or 1))
+---@param multiplier number
+function Flag:scale(multiplier)
+  if not self.value or self.value == '' then
+    return
+  end
 
-    if self.key == Flag.IMAGE_X_KEY
-        or self.key == Flag.IMAGE_Y_KEY
-        or self.key == Flag.VIDEO_X_KEY
-        or self.key == Flag.VIDEO_Y_KEY
-    then
-      if self.value >= 1 then
-        self.value = scaledValue
-      end
-    else
+  local scaledValue = math.ceil(self.value * (multiplier or 1))
+
+  if self.key == Flag.IMAGE_X_KEY
+      or self.key == Flag.IMAGE_Y_KEY
+      or self.key == Flag.VIDEO_X_KEY
+      or self.key == Flag.VIDEO_Y_KEY
+  then
+    if self.value >= 1 then
       self.value = scaledValue
     end
-
-    -- Apply limits
-    if self.key == Flag.IMAGE_HEIGHT_KEY
-        and config.maxImageHeight
-        and self.value > config.maxImageHeight
-    then
-      self.value = config.maxImageHeight
-    end
-
-    if self.key == Flag.IMAGE_WIDTH_KEY
-        and config.maxImageWidth
-        and self.value > config.maxImageWidth
-    then
-      self.value = config.maxImageWidth
-    end
-
-    if self.key == Flag.VIDEO_HEIGHT_KEY
-        and config.maxVideoHeight
-        and self.value > config.maxVideoHeight
-    then
-      self.value = config.maxVideoHeight
-    end
-
-    if self.key == Flag.VIDEO_WIDTH_KEY
-        and config.maxVideoWidth
-        and self.value > config.maxVideoWidth
-    then
-      self.value = config.maxVideoWidth
-    end
+  else
+    self.value = scaledValue
   end
 end
 
@@ -236,7 +209,7 @@ end
 ---@param dimension number
 function Flag:coordinateToAbsolute(dimension)
   if dimension
-      and (self.key == Flag.VIDEO_X_KEY or self.key == Flag.VIDEO_Y_KEY)
+      -- and (self.key == Flag.VIDEO_X_KEY or self.key == Flag.VIDEO_Y_KEY)
       and self.value
       and self.value > 0
       and self.value < 1

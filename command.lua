@@ -6,7 +6,7 @@ local Command = {}
 
 local function getCanvas(config, file, flags)
   local background = flags[Flag.IMAGE_BACKGROUND_KEY] and flags[Flag.IMAGE_BACKGROUND_KEY].value
-  local canvas = ''
+  local canvas
 
   if background == 'auto' then
     -- Get 2 dominant colors in format 'x000000-x000000'
@@ -22,7 +22,7 @@ local function getCanvas(config, file, flags)
     canvas = file.originalFilePath .. ' -size %wx%h xc:' .. (background or '') .. ' -delete 0 '
   end
 
-  return canvas
+  return canvas or ''
 end
 
 local function getMask(radius)
@@ -168,8 +168,8 @@ local function buildVideoProcessingCommand(config, file, flags)
   local command = ''
   local filter = ''
 
-  local videoWidth = width - 2 * (minpad or 0)
-  local videoHeight = height - 2 * (minpad or 0)
+  local videoWidth = width and (width - 2 * (minpad or 0))
+  local videoHeight = height and (height - 2 * (minpad or 0))
 
   local bg = ''
   if background then
@@ -279,6 +279,10 @@ local function buildVideoProcessingCommand(config, file, flags)
     end
 
     command = command .. ' ' .. file.cachedFilePath
+    -- TODO
+    -- ' -movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov ' .. file.cachedFilePath
+    -- ' -movflags +faststart ' .. file.cachedFilePath
+    -- ' -f ismv ' .. file.cachedFilePath
 
     -- Set pre-command
     if config.logTime then
@@ -329,6 +333,9 @@ end
 ---@return boolean?
 function Command:execute()
   if self.isValid then
+    -- TODO (?)
+    -- local ok = shell.run(self.command)
+    -- return ok
     return os.execute(self.command)
   end
   return false

@@ -4,6 +4,7 @@ local File = require('file')
 local Command = require('command')
 local log = require('log')
 local utils = require('utils')
+local ngx = ngx
 
 ---Download original form upstream
 ---@param file table
@@ -98,7 +99,12 @@ local function main()
   end
 
   -- Parse flags into a table
-  for f, v in string.gmatch(luampFlags, '(%w+)' .. config.flagValueDelimiter .. '([^' .. config.flagsDelimiter .. '\\/]+)' .. config.flagsDelimiter .. '*') do
+  for f, v in string.gmatch(luampFlags,
+    '(%w+)' .. config.flagValueDelimiter
+    .. '([^' .. config.flagsDelimiter
+    .. '\\/]+)' .. config.flagsDelimiter
+    .. '*'
+  ) do
     -- Preprocess the flag and value if necessary
     if config.flagPreprocessHook then
       f, v = config.flagPreprocessHook(f, v)
@@ -113,30 +119,61 @@ local function main()
     end
   end
 
-  -- Scale dimensions with respect to limits
-  local dpr = flags[Flag.IMAGE_DPR_KEY] or flags[Flag.VIDEO_DPR_KEY]
-  for flagName, _ in pairs(flags) do
+  local dprFlag = flags[Flag.IMAGE_DPR_KEY] or flags[Flag.VIDEO_DPR_KEY]
+  local widthFlag = flags[Flag.IMAGE_WIDTH_KEY] or flags[Flag.VIDEO_WIDTH_KEY]
+  local heightFlag = flags[Flag.IMAGE_HEIGHT_KEY] or flags[Flag.VIDEO_HEIGHT_KEY]
+  local xFlag = flags[Flag.IMAGE_X_KEY] or flags[Flag.VIDEO_X_KEY]
+  local yFlag = flags[Flag.IMAGE_Y_KEY] or flags[Flag.VIDEO_Y_KEY]
+
+  local dpr = dprFlag and dprFlag.value or 1
+  local width = widthFlag and widthFlag.value or 0
+  local height = heightFlag and heightFlag.value or 0
+  local x = xFlag and xFlag.value
+  local y = yFlag and yFlag.value
+
+  -- Scale dimensions with dpr
+  for flagName in pairs(flags) do
     local flag = flags[flagName]
-    if flag.isScalable and dpr and dpr.value then
+    if flag.isScalable then
       log('Scaling a flag: ' .. flagName)
-      flag:scale(config, dpr.value)
+      flag:scale(dpr)
+    end
+  end
+
+  -- Apply limits and scale
+  local aspectRatio = 1
+  local maxWidth = (file.type == File.VIDEO_TYPE and config.maxVideoWidth) or config.maxImageWidth or 0
+  local maxHeight = (file.type == File.VIDEO_TYPE and config.maxVideoHeight) or config.maxImageHeight or 0
+  local wAr = maxWidth / width
+  local hAr = maxHeight / height
+
+  if wAr < 1 then
+    if hAr < 1 then
+      aspectRatio = math.min(wAr, hAr)
+    else
+      aspectRatio = wAr
+    end
+  elseif hAr < 1 then
+    aspectRatio = hAr
+  end
+
+  for flagName in pairs(flags) do
+    local flag = flags[flagName]
+    if flag.isScalable then
+      log('Applying AR ' .. aspectRatio .. ' to a flag: ' .. flagName)
+      flag:scale(aspectRatio)
     end
   end
 
   -- Calculate absolute x/y for values in (0, 1) range
-  if file.type == File.VIDEO_TYPE then
-    local videoX = flags[Flag.VIDEO_X_KEY]
-    local videoY = flags[Flag.VIDEO_Y_KEY]
-    local videoWidth = flags[Flag.VIDEO_WIDTH_KEY]
-    local videoHeight = flags[Flag.VIDEO_HEIGHT_KEY]
-    if videoX and videoWidth then
-      videoX.coordinateToAbsolute(videoWidth.value)
-      log('Absolute x: ' .. videoX.value)
-    end
-    if videoY and videoWidth then
-      videoY.coordinateToAbsolute(videoHeight.value)
-      log('Absolute y: ' .. videoY.value)
-    end
+  if x and 0 < x and x < 1 and width then
+    xFlag:coordinateToAbsolute(width)
+    log('Absolute x: ' .. xFlag.value)
+  end
+
+  if y and 0 < y and y < 1 and height then
+    yFlag:coordinateToAbsolute(height)
+    log('Absolute x: ' .. yFlag.value)
   end
 
   -- Recalculate cache dir path
