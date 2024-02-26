@@ -10,8 +10,8 @@ local function getCanvas(config, file, flags)
 
   if background == 'auto' then
     -- Get 2 dominant colors in format 'x000000-x000000'
-    local cmd = config.magick .. ' ' .. file.originalFilePath ..
-        ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
+    local cmd = config.magick .. ' ' .. file.originalFilePath
+        .. ' -resize 50x50 -colors 2 -format "%c" histogram:info: | awk \'{ORS=(NR%2? "-":""); print $3}\''
 
     local dominantColors = utils.captureCommandOutput(cmd)
 
@@ -26,10 +26,7 @@ local function getCanvas(config, file, flags)
 end
 
 local function getMask(radius)
-  local mask =
-      ' -size %[origwidth]x%[origheight]' ..
-      ' xc:black' ..
-      ' -fill white'
+  local mask = ' -size %[origwidth]x%[origheight]  xc:black -fill white'
 
   if radius then
     mask = mask .. ' -draw "roundrectangle 0,0,%[origwidth],%[origheight],' .. radius .. ',' .. radius .. '"'
@@ -73,59 +70,59 @@ local function buildImageProcessingCommand(config, file, flags)
   end
 
   if crop == 'fill' and (width or height) then
-    command = executorWithPreset ..
-        canvas ..
-        ' -resize ' .. dimensions .. '^' ..
-        ' -crop ' .. dimensions .. '+' .. x .. '+' .. y ..
-        ' \\( ' ..
-        image ..
-        ' -resize ' .. dimensions .. '^' ..
-        ' -crop ' .. dimensions .. '+' .. x .. '+' .. y ..
-        ' -set option:origwidth %w' ..
-        ' -set option:origheight %h' ..
-        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
-        ' \\) -compose over -composite'
+    command = executorWithPreset
+        .. canvas
+        .. ' -resize ' .. dimensions .. '^'
+        .. ' -crop ' .. dimensions .. '+' .. x .. '+' .. y
+        .. ' \\( '
+        .. image
+        .. ' -resize ' .. dimensions .. '^'
+        .. ' -crop ' .. dimensions .. '+' .. x .. '+' .. y
+        .. ' -set option:origwidth %w'
+        .. ' -set option:origheight %h'
+        .. ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite'
+        .. ' \\) -compose over -composite'
   elseif crop == 'limited_padding' and (width or height) then
     local imageWidth = width and (width - 2 * (minpad or 0))
     local imageHeight = height and (height - 2 * (minpad or 0))
-    command = executorWithPreset ..
-        canvas ..
-        ' -resize ' .. dimensions .. '^' ..
-        ' -crop ' .. dimensions .. '+0+0 ' ..
-        ' \\( ' ..
-        image ..
-        ' -resize ' .. (imageWidth or '') .. 'x' .. (imageHeight or '') .. '\\>' ..
-        ' -set option:origwidth %w' ..
-        ' -set option:origheight %h' ..
-        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
-        ' \\) -compose over -composite'
+    command = executorWithPreset
+        .. canvas
+        .. ' -resize ' .. dimensions .. '^'
+        .. ' -crop ' .. dimensions .. '+0+0 '
+        .. ' \\( '
+        .. image
+        .. ' -resize ' .. (imageWidth or '') .. 'x' .. (imageHeight or '') .. '\\>'
+        .. ' -set option:origwidth %w'
+        .. ' -set option:origheight %h'
+        .. ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite'
+        .. ' \\) -compose over -composite'
   elseif crop == 'padding' and (width or height) then
     local imageWidth = width and (width - 2 * (minpad or 0))
     local imageHeight = height and (height - 2 * (minpad or 0))
-    command = executorWithPreset ..
-        canvas ..
-        ' -resize ' .. dimensions .. '^' ..
-        ' -crop ' .. dimensions .. '+0+0 ' ..
-        ' \\( ' ..
-        image ..
-        ' -resize ' .. (imageWidth or '') .. 'x' .. (imageHeight or '') ..
-        ' -set option:origwidth %w' ..
-        ' -set option:origheight %h' ..
-        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
-        ' \\) -compose over -composite'
+    command = executorWithPreset
+        .. canvas
+        .. ' -resize ' .. dimensions .. '^'
+        .. ' -crop ' .. dimensions .. '+0+0 '
+        .. ' \\( '
+        .. image
+        .. ' -resize ' .. (imageWidth or '') .. 'x' .. (imageHeight or '')
+        .. ' -set option:origwidth %w'
+        .. ' -set option:origheight %h'
+        .. ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite'
+        .. ' \\) -compose over -composite'
   elseif width or height then
     local forceResizeFlag = (width and height and '! ') or ''
 
-    command = executorWithPreset ..
-        canvas ..
-        ' -resize ' .. dimensions .. forceResizeFlag ..
-        ' \\( ' ..
-        image ..
-        ' -resize ' .. dimensions .. forceResizeFlag ..
-        ' -set option:origwidth %w' ..
-        ' -set option:origheight %h' ..
-        ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite' ..
-        ' \\) -compose over -composite'
+    command = executorWithPreset
+        .. canvas
+        .. ' -resize ' .. dimensions .. forceResizeFlag
+        .. ' \\( '
+        .. image
+        .. ' -resize ' .. dimensions .. forceResizeFlag
+        .. ' -set option:origwidth %w'
+        .. ' -set option:origheight %h'
+        .. ' \\( ' .. mask .. ' \\) -compose CopyOpacity -composite'
+        .. ' \\) -compose over -composite'
   end
 
   if command and command ~= '' then
@@ -177,101 +174,106 @@ local function buildVideoProcessingCommand(config, file, flags)
   end
 
   if background == 'blurred' and crop == 'limited_padding' and width and height then
-    local foreground = 'scale=min(' .. videoWidth .. '\\,iw):min(' .. videoHeight .. '\\,ih)' ..
-        ':force_original_aspect_ratio=decrease' ..
-        ':force_divisible_by=2' ..
-        ',setsar=1'
+    local foreground =
+        'scale=min(' .. videoWidth .. '\\,iw):min(' .. videoHeight .. '\\,ih)'
+        .. ':force_original_aspect_ratio=decrease'
+        .. ':force_divisible_by=2'
+        .. ',setsar=1'
     if radius then
       local doubleRadius = 2 * radius
-      foreground = 'scale=min(' .. 2 * videoWidth .. '\\,2*iw):min(' .. 2 * videoHeight .. '\\,2*ih)' ..
-          ':force_original_aspect_ratio=decrease' ..
-          ':force_divisible_by=2' ..
-          ",geq=lum='p(X,Y)'" ..
-          ":a='if(gt(abs(W/2-X),W/2-" .. doubleRadius .. ')*gt(abs(H/2-Y),H/2-' .. doubleRadius .. ')' ..
-          ',if(lte(hypot(' ..
-          doubleRadius .. '-(W/2-abs(W/2-X)),' ..
-          doubleRadius .. '-(H/2-abs(H/2-Y))),' ..
-          doubleRadius .. "),255,0),255)'" ..
-          ',format=yuva420p' ..
-          ',scale=iw/2:ih/2' ..
-          ',setsar=1'
+      foreground =
+          'scale=min(' .. 2 * videoWidth .. '\\,2*iw):min(' .. 2 * videoHeight .. '\\,2*ih)'
+          .. ':force_original_aspect_ratio=decrease'
+          .. ':force_divisible_by=2'
+          .. ",geq=lum='p(X,Y)'"
+          .. ":a='if(gt(abs(W/2-X),W/2-" .. doubleRadius .. ')*gt(abs(H/2-Y),H/2-' .. doubleRadius .. ')'
+          .. ',if(lte(hypot('
+          .. doubleRadius .. '-(W/2-abs(W/2-X)),'
+          .. doubleRadius .. '-(H/2-abs(H/2-Y))),'
+          .. doubleRadius .. "),255,0),255)'"
+          .. ',format=yuva420p'
+          .. ',scale=iw/2:ih/2'
+          .. ',setsar=1'
     end
     -- scale + padded (no upscale) + blurred bg
     filter =
-        'split [first][second];' ..
+        '[0]split [first][second];'
         -- prepare background
-        '[first]' ..
-        'hue=b=-1,boxblur=20' ..
-        ',scale=max(' .. width .. '\\,iw*(max(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
-        ':max(' .. height .. '\\,ih*(max(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
-        ':force_original_aspect_ratio=increase' ..
-        ':force_divisible_by=2' ..
-        ',crop=' .. width .. ':' .. height ..
-        ',setsar=1' ..
-        '[background];' ..
+        .. '[first]'
+        .. 'hue=b=-1,boxblur=20'
+        .. ',scale=max(' .. width .. '\\,iw*(max(' .. width .. '/iw\\,' .. height .. '/ih)))'
+        .. ':max(' .. height .. '\\,ih*(max(' .. width .. '/iw\\,' .. height .. '/ih)))'
+        .. ':force_original_aspect_ratio=increase'
+        .. ':force_divisible_by=2'
+        .. ',crop=' .. width .. ':' .. height
+        .. ',setsar=1'
+        .. '[background];'
         -- prepare foreground
-        '[second]' ..
-        foreground ..
-        '[foreground];' ..
+        .. '[second]'
+        .. foreground
+        .. '[foreground];'
         -- compose
-        '[background][foreground]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
+        .. '[background][foreground]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
   elseif background == 'blurred' and crop == 'padding' and width and height then
     -- scale + padded (with upscale) + blurred bg
     filter =
-        'split [first][second];' ..
+        'split [first][second];'
         -- prepare background
-        '[first]' ..
-        'hue=b=-1,boxblur=20' ..
-        ',scale=max(' .. width .. '\\,iw*(max(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
-        ':max(' .. height .. '\\,ih*(max(' .. width .. '/iw\\,' .. height .. '/ih)))' ..
-        ':force_original_aspect_ratio=increase' ..
-        ':force_divisible_by=2' ..
-        ',crop=' .. width .. ':' .. height ..
-        ',setsar=1' ..
-        '[background];' ..
+        .. '[first]'
+        .. 'hue=b=-1,boxblur=20'
+        .. ',scale=max(' .. width .. '\\,iw*(max(' .. width .. '/iw\\,' .. height .. '/ih)))'
+        .. ':max(' .. height .. '\\,ih*(max(' .. width .. '/iw\\,' .. height .. '/ih)))'
+        .. ':force_original_aspect_ratio=increase'
+        .. ':force_divisible_by=2'
+        .. ',crop=' .. width .. ':' .. height
+        .. ',setsar=1'
+        .. '[background];'
         -- prepare foreground
-        '[second]' ..
-        'scale=min(' .. videoWidth .. '\\,iw*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
-        ':min(' .. videoHeight .. '\\,ih*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
-        ':force_original_aspect_ratio=increase' ..
-        ':force_divisible_by=2' ..
-        ',setsar=1' ..
-        '[foreground];' ..
+        .. '[second]'
+        .. 'scale=min(' .. videoWidth .. '\\,iw*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))'
+        .. ':min(' .. videoHeight .. '\\,ih*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))'
+        .. ':force_original_aspect_ratio=increase'
+        .. ':force_divisible_by=2'
+        .. ',setsar=1'
+        .. '[foreground];'
         -- compose
-        '[background][foreground]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
+        .. '[background][foreground]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
   elseif crop == 'limited_padding' and width and height then
     -- scale (no upscale) with padding (blackbox)
     filter =
-        'scale=min(' .. videoWidth .. '\\,iw):min(' .. videoHeight .. '\\,ih)' ..
-        ':force_original_aspect_ratio=decrease' ..
-        ':force_divisible_by=2' ..
-        ',setsar=1' ..
-        ',pad=' .. width .. ':' .. height .. ':y=' .. (y or '-1') .. ':x=' .. (x or '-1') .. bg
+        'scale=min(' .. videoWidth .. '\\,iw):min(' .. videoHeight .. '\\,ih)'
+        .. ':force_original_aspect_ratio=decrease'
+        .. ':force_divisible_by=2'
+        .. ',setsar=1'
+        .. ',pad=' .. width .. ':' .. height .. ':y=' .. (y or '-1') .. ':x=' .. (x or '-1') .. bg
   elseif crop == 'padding' and width and height then
     -- scale (with upscale) with padding (blackbox)
     filter =
-        'scale=min(' .. videoWidth .. '\\,iw*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
-        ':min(' .. videoHeight .. '\\,ih*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))' ..
-        ':force_original_aspect_ratio=increase' ..
-        ':force_divisible_by=2' ..
-        ',setsar=1' ..
-        ',pad=' .. width .. ':' .. height .. ':y=' .. (y or '-1') .. ':x=' .. (x or '-1') .. bg
+        'scale=min(' .. videoWidth .. '\\,iw*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))'
+        .. ':min(' .. videoHeight .. '\\,ih*(min(' .. videoWidth .. '/iw\\,' .. videoHeight .. '/ih)))'
+        .. ':force_original_aspect_ratio=increase'
+        .. ':force_divisible_by=2'
+        .. ',setsar=1'
+        .. ',pad=' .. width .. ':' .. height .. ':y=' .. (y or '-1') .. ':x=' .. (x or '-1') .. bg
   elseif width or height then
+    -- simple scale
     local ratio = 'decrease'
 
     if width and height then
       ratio = 'disable'
     end
-    -- simple scale (no aspect ratio)
     filter =
-        'scale=' .. (width or '-1') .. ':' .. (height or '-1') ..
-        ':force_original_aspect_ratio=' .. ratio ..
-        ':force_divisible_by=2' ..
-        ',setsar=1'
+        'scale=' .. (width or '-1') .. ':' .. (height or '-1')
+        .. ':force_original_aspect_ratio=' .. ratio
+        .. ':force_divisible_by=2'
+        .. ',setsar=1'
   end
 
   if filter and filter ~= '' then
-    command = config.ffmpeg .. ' -i ' .. file.originalFilePath .. ' -vf "' .. filter .. '" -c:a copy'
+    command = config.ffmpeg .. ' -i ' .. file.originalFilePath
+        .. ' -filter_complex "' .. filter
+        .. '" -c:a copy'
+        .. ' -movflags +faststart'
 
     -- setting x264 preset
     if config.ffmpegPreset and config.ffmpegPreset ~= '' then
@@ -279,10 +281,6 @@ local function buildVideoProcessingCommand(config, file, flags)
     end
 
     command = command .. ' ' .. file.cachedFilePath
-    -- TODO
-    -- ' -movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov ' .. file.cachedFilePath
-    -- ' -movflags +faststart ' .. file.cachedFilePath
-    -- ' -f ismv ' .. file.cachedFilePath
 
     -- Set pre-command
     if config.logTime then
