@@ -299,6 +299,14 @@ local function buildVideoProcessingCommand(config, file, flags)
     end
     -- compose
     filter = filter .. '[fg];[bg][fg]overlay=y=' .. (y or '(H-h)/2') .. ':x=' .. (x or '(W-w)/2')
+  elseif crop == 'fill' and width and height then
+    filter =
+        '[0]scale=max(' .. width .. '\\,iw*(max(' .. width .. '/iw\\,' .. height .. '/ih)))'
+        .. ':max(' .. height .. '\\,ih*(max(' .. width .. '/iw\\,' .. height .. '/ih)))'
+        .. ':force_original_aspect_ratio=increase'
+        .. ':force_divisible_by=2'
+        .. ',crop=' .. width .. ':' .. height
+        .. ',setsar=1'
   elseif width or height then
     -- simple scale
     local ratio = 'decrease'
