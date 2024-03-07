@@ -119,26 +119,26 @@ local function main()
     end
   end
 
-  -- Scale dimensions with dpr
+  -- Apply limits and scale
   local dprFlag = flags[Flag.IMAGE_DPR_KEY] or flags[Flag.VIDEO_DPR_KEY]
+  local widthFlag = flags[Flag.IMAGE_WIDTH_KEY] or flags[Flag.VIDEO_WIDTH_KEY]
+  local heightFlag = flags[Flag.IMAGE_HEIGHT_KEY] or flags[Flag.VIDEO_HEIGHT_KEY]
+  local xFlag = flags[Flag.IMAGE_X_KEY] or flags[Flag.VIDEO_X_KEY]
+  local yFlag = flags[Flag.IMAGE_Y_KEY] or flags[Flag.VIDEO_Y_KEY]
+
+  -- Scaling with DPR
   local dpr = dprFlag and dprFlag.value or 1
   for flagName in pairs(flags) do
     local flag = flags[flagName]
-    if flag.isScalable then
+    if flag.isDprDependent then
       log('Scaling a flag: ' .. flagName)
       flag:scale(dpr)
     end
   end
 
-  -- Apply limits and scale
-  local widthFlag = flags[Flag.IMAGE_WIDTH_KEY] or flags[Flag.VIDEO_WIDTH_KEY]
-  local heightFlag = flags[Flag.IMAGE_HEIGHT_KEY] or flags[Flag.VIDEO_HEIGHT_KEY]
-  local xFlag = flags[Flag.IMAGE_X_KEY] or flags[Flag.VIDEO_X_KEY]
-  local yFlag = flags[Flag.IMAGE_Y_KEY] or flags[Flag.VIDEO_Y_KEY]
+  -- Scaling with AR
   local width = widthFlag and widthFlag.value or 0
   local height = heightFlag and heightFlag.value or 0
-  local x = xFlag and xFlag.value
-  local y = yFlag and yFlag.value
   local aspectRatio = 1
   local maxWidth = (file.type == File.VIDEO_TYPE and config.maxVideoWidth) or config.maxImageWidth or 0
   local maxHeight = (file.type == File.VIDEO_TYPE and config.maxVideoHeight) or config.maxImageHeight or 0
@@ -157,13 +157,15 @@ local function main()
 
   for flagName in pairs(flags) do
     local flag = flags[flagName]
-    if flag.isScalable then
+    if flag.isArDependent then
       log('Applying AR ' .. aspectRatio .. ' to a flag: ' .. flagName)
       flag:scale(aspectRatio)
     end
   end
 
   -- Calculate absolute x/y for values in (0, 1) range
+  local x = xFlag and xFlag.value
+  local y = yFlag and yFlag.value
   if x and 0 < x and x < 1 and width then
     xFlag:coordinateToAbsolute(width)
     log('Absolute x: ' .. xFlag.value)

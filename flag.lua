@@ -29,67 +29,78 @@ Flag.DEFAULTS = {
   [Flag.IMAGE_BACKGROUND_KEY] = {
     name = 'background',
     value = 'white',
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.IMAGE_CROP_KEY] = {
     name = 'crop',
     value = nil,
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.IMAGE_DPR_KEY] = {
     name = 'dpr',
     value = 1,
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = false,
   },
   [Flag.IMAGE_GRAVITY_KEY] = {
     name = 'gravity',
     value = 'center',
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.IMAGE_X_KEY] = {
     name = 'x',
     value = 0,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.IMAGE_Y_KEY] = {
     name = 'y',
     value = 0,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.IMAGE_HEIGHT_KEY] = {
     name = 'height',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.IMAGE_WIDTH_KEY] = {
     name = 'width',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.IMAGE_RADIUS_KEY] = {
     name = 'radius',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.IMAGE_QUALITY_KEY] = {
     name = 'quality',
     value = 80,
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.IMAGE_MINPAD_KEY] = {
     name = 'minpad',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = false,
     makeDir = true,
   },
 
@@ -97,55 +108,64 @@ Flag.DEFAULTS = {
   [Flag.VIDEO_BACKGROUND_KEY] = {
     name = 'background',
     value = 'black',
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.VIDEO_CROP_KEY] = {
     name = 'crop',
     value = nil,
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.VIDEO_DPR_KEY] = {
     name = 'dpr',
     value = 1,
-    isScalable = false,
+    isDprDependent = false,
+    isArDependent = false,
     makeDir = false,
   },
   [Flag.VIDEO_X_KEY] = {
     name = 'x',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.VIDEO_Y_KEY] = {
     name = 'y',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.VIDEO_HEIGHT_KEY] = {
     name = 'height',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.VIDEO_WIDTH_KEY] = {
     name = 'width',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = true,
     makeDir = true,
   },
   [Flag.VIDEO_RADIUS_KEY] = {
     name = 'radius',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = false,
     makeDir = true,
   },
   [Flag.VIDEO_MINPAD_KEY] = {
     name = 'minpad',
     value = nil,
-    isScalable = true,
+    isDprDependent = true,
+    isArDependent = false,
     makeDir = true,
   },
 }
@@ -160,7 +180,8 @@ function Flag.new(key, value)
     self.name = defaults.name
     self.value = defaults.value
     self.key = key
-    self.isScalable = defaults.isScalable
+    self.isDprDependent = defaults.isDprDependent
+    self.isArDependent = defaults.isArDependent
     self.makeDir = defaults.makeDir
 
     -- if value and value ~= '' then
