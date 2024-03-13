@@ -276,12 +276,13 @@ Character that is used to separate flag name from the value, e.g. underscores in
 
 Similar to `config.flagMap` above, but for non-number flag *values* rather than flag names.
 
-Default flag values, e.g. `c_pad` or `c_lpad`, also `b_blurred`:
+Default flag values, e.g. `c_pad`, `c_lpad` or `c_fill`, also `b_blurred`:
 
 ```
 config.flagValueMap = {
     ['pad'] = 'padding',
     ['lpad'] = 'limited_padding',
+    ['fill'] = 'fill',
     ['blurred'] = 'blur',
 }
 ```
@@ -386,6 +387,7 @@ Available values:
 Available values:
  - `pad` — when resizing a video, aspect ratio will be preserved and padding box will be added to keep the aspect ratio. 
  - `lpad` — same as `pad` but original video will **not** be scaled up.
+ - `fill` — scales and crops a video to fit specified dimensions without distortion, scaling it to fill the space and cropping any excess.
 
 ### `dpr` — Device Pixel Ratio
 

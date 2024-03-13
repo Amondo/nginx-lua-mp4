@@ -223,6 +223,10 @@ if cachedFile == nil then
         -- scale (with upscale) with padding (blackbox)
         command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=min(' .. flagValues['width'] .. '\\,iw*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):min(' .. flagValues['height'] .. '\\,ih*(min(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,setsar=1,pad=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':y=' .. (flagValues['y'] or '-1') .. ':x=' .. (flagValues['x'] or '-1') .. ':color=black" -c:a copy ' .. preset .. cachedFilepath .. filename
 
+    elseif (flagValues['crop'] ~= nil and flagValues['crop'] == 'fill' and flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
+        -- scale (with upscale) + cropping
+        command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=max(' .. flagValues['width'] .. '\\,iw*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):max(' .. flagValues['height'] .. '\\,ih*(max(' .. flagValues['width'] .. '/iw\\,' .. flagValues['height'] .. '/ih))):force_original_aspect_ratio=increase:force_divisible_by=2,crop=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ',setsar=1" -c:a copy ' .. preset .. cachedFilepath .. filename
+
     elseif (flagValues['width'] ~= nil and flagValues['height'] ~= nil) then
         -- simple scale (no aspect ratio)
         command = config.ffmpeg .. ' -i ' .. originalFilepath .. filename .. ' -filter_complex "scale=' .. flagValues['width'] .. ':' .. flagValues['height'] .. ':force_divisible_by=2:force_original_aspect_ratio=disable,setsar=1" -c:a copy ' .. preset .. cachedFilepath .. filename

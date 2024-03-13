@@ -47,6 +47,7 @@ config.flagMap = {
 config.flagValueMap = {
     ['pad'] = 'padding',
     ['lpad'] = 'limited_padding',
+    ['fill'] = 'fill',
     ['blurred'] = 'blur',
 }
 
