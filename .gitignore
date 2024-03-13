@@ -2,3 +2,13 @@
 .vscode
 .idea
 config.lua
+tmp
+nginx.conf
+luamp-locations.conf
+docker-compose.yml
+Dockerfile
+tests/originals
+tests/runfiles
+tests/links_image
+tests/links_video
+tests/test.config

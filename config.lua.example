@@ -1,3 +1,6 @@
+local Flag = require('flag')
+local log = require('log')
+
 config = {}
 
 -- ########## CONFIG ##########
@@ -6,16 +9,25 @@ config = {}
 -- `which ffmpeg`
 config.ffmpeg = '/usr/local/bin/ffmpeg'
 
+-- `which magick`
+config.magick = '/usr/bin/magick'
+
 -- where to save original and transcoded files (trailing slash required)
-config.mediaBaseFilepath = '/tmp/nginx/'
+config.mediaBaseFilepath = '/usr/local/openresty/nginx/html/media/'
 
 -- set to `true` to enable originals download from the upstream/CDN. See `getOriginalsUpstreamUrl` below
 config.downloadOriginals = true
 
+-- removes color profile on conversion
+config.stripColorProfile = true
+
+-- color profile will be applied if path set
+config.colorProfilePath = '/usr/local/openresty/nginx/html/media/sRGB.icc'
+
 -- function to get a URL where originals are stored, when `downloadOriginals` set to true.
 function config.getOriginalsUpstreamPath(prefix, postfix, filename)
     -- return ngx.var.request_uri
-    return (prefix or '') .. (postfix or '') .. (filename or '')
+    return '/' .. (prefix or '') .. (postfix or '') .. (filename or '')
 end
 
 -- character that is used to separate different flags in URL.
@@ -29,15 +41,30 @@ config.flagValueDelimiter = '_'
 -- override URL flag names. Useful when you migrate from another transcoding solution and already have
 -- some flags in use on the front end. Customize the left part of the table.
 -- eg `['cropping'] = 'crop'` to use `cropping` instead of the default `c`
-config.flagMap = {
-    ['c'] = 'crop', -- crop / scale
-    ['b'] = 'background',
-    ['dpr'] = 'dpr', -- DPR, https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
-    -- ['f'] = 'format',
-    ['h'] = 'height',
-    ['w'] = 'width',
-    ['x'] = 'x',
-    ['y'] = 'y',
+config.flagVideoMap = {
+    b = Flag.VIDEO_BACKGROUND_KEY,
+    c = Flag.VIDEO_CROP_KEY,
+    dpr = Flag.VIDEO_DPR_KEY,
+    x = Flag.VIDEO_X_KEY,
+    y = Flag.VIDEO_Y_KEY,
+    h = Flag.VIDEO_HEIGHT_KEY,
+    w = Flag.VIDEO_WIDTH_KEY,
+    r = Flag.VIDEO_RADIUS_KEY,
+    minp = Flag.VIDEO_MINPAD_KEY,
+}
+
+config.flagImageMap = {
+    b = Flag.IMAGE_BACKGROUND_KEY,
+    c = Flag.IMAGE_CROP_KEY,
+    dpr = Flag.IMAGE_DPR_KEY,
+    g = Flag.IMAGE_GRAVITY_KEY,
+    x = Flag.IMAGE_X_KEY,
+    y = Flag.IMAGE_Y_KEY,
+    h = Flag.IMAGE_HEIGHT_KEY,
+    w = Flag.IMAGE_WIDTH_KEY,
+    r = Flag.IMAGE_RADIUS_KEY,
+    q = Flag.IMAGE_QUALITY_KEY,
+    minp = Flag.IMAGE_MINPAD_KEY,
 }
 
 -- override URL flag values. Useful when you migrate from another transcoding solution and already have
@@ -45,15 +72,38 @@ config.flagMap = {
 -- eg `['padded'] = 'pad'` to use `padded` instead of the default `pad`
 -- Also, all flag values not present in this table will be considered (and cast to) a number
 config.flagValueMap = {
-    ['pad'] = 'padding',
-    ['lpad'] = 'limited_padding',
-    ['blurred'] = 'blur',
+    -- crop params
+    pad = 'padding',
+    lpad = 'limited_padding',
+    fill = 'fill',
+    -- background params
+    auto = 'auto',
+    blurred = 'blurred',
+    black = 'black',
+    white = 'white',
+    red = 'red',
+    green = 'green',
+    blue = 'blue',
+    yellow = 'yellow',
+    cyan = 'cyan',
+    magenta = 'magenta',
+    gray = 'gray',
+    -- gravity params
+    northwest = 'northwest',
+    north = 'north',
+    northeast = 'northeast',
+    west = 'west',
+    center = 'center',
+    east = 'east',
+    southwest = 'southwest',
+    south = 'south',
+    southeast = 'southeast',
 }
 
 -- log transcoding process. Useful when doing initial setup or debugging issues
-config.logEnabled = false
-config.logLevel = ngx.ERR
--- config.logLevel = ngx.INFO
+config.logEnabled = true
+-- config.logLevel = ngx.ERR
+config.logLevel = ngx.INFO
 -- config.logLevel = ngx.DEBUG
 
 -- log `ffmpeg` output.
@@ -65,16 +115,22 @@ config.ffmpegDevNull = '2> /dev/null' -- nix
 -- config.ffmpegDevNull = '2>NUL' -- win
 
 -- whether to prepend transcoding command with `time` utility to log time spent in ffmpeg
-config.logTime = false
+config.logTime = true
 
 -- top limit for output video height (default 4k UHD)
-config.maxHeight = 2160
+config.maxVideoHeight = 2160
 
 -- top limit for output video width (default 4k UHD)
-config.maxWidth = 3840
+config.maxVideoWidth = 3840
+
+-- top limit for output image height (default 4k UHD)
+config.maxImageHeight = 2000
+
+-- top limit for output image width (default 4k UHD)
+config.maxImageWidth = 2000
 
 -- customize this function to preprocess flags or their values
--- return values should contain values that are present in `config.flagMap` and `config.flagValueMap`
+-- return values should contain values that are present in `config.flagVideoMap` or `config.flagImageMap` and `config.flagValueMap`
 function config.flagPreprocessHook(flag, value)
     -- do some processing
     -- strip sub parameters `c_pad:pink`  -> `c_pad`
@@ -86,12 +142,24 @@ end
 config.serveOriginalOnTranscodeFailure = true
 
 -- least required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1KB)
-config.minimumTranscodedFileSize = 1024
+config.minimumTranscodedVideoSize = 1
 
 -- encoding preset to use https://trac.ffmpeg.org/wiki/Encode/H.264
 config.ffmpegPreset = ''
 -- config.ffmpegPreset = 'ultrafast'
 -- config.ffmpegPreset = 'superfast'
 -- config.ffmpegPreset = 'veryfast'
+
+-- Set missing config options to the defaults
+---@generic T: table, K, V
+---@param defaults T
+function config.setDefaults(defaults)
+    for o, v in pairs(defaults) do
+        if config[o] == nil then
+            log('Setting default config for ' .. o)
+            config[o] = v
+        end
+    end
+end
 
 return config

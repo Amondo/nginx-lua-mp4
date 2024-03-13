@@ -1,0 +1,36 @@
+# This file contains the shared location blocks for both HTTP and HTTPS servers
+
+# media location
+location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/v]+)\/|\/|)(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp|mp4))$ {
+    root html/media;
+    # these are needed to be set if you did not use them in regex matching location
+    # set $luamp_prefix "";
+    # set $luamp_postfix "";
+    try_files $uri @luamp_media_processor;
+}
+
+# image process/transcode location
+location @luamp_media_processor {
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
+    content_by_lua_file "/usr/local/openresty/nginx/nginx-lua-mp4/media-processor.lua";
+}
+
+# cache location
+location =/luamp-cache {
+    internal;
+    root /;
+    index off;
+    expires 24h;
+    set_unescape_uri $luamp_transcoded_file $arg_luamp_cached_file_path;
+    try_files $luamp_transcoded_file =404;
+}
+
+# upstream location
+location =/luamp-upstream {
+    internal;
+    proxy_ssl_server_name on;
+    rewrite ^(.+)$ $luamp_original_file break;
+    proxy_pass "https://example.com";
+}

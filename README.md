@@ -35,6 +35,7 @@ https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-8
   - ✅ Keep original aspect ratio
   - ✅ mp4 support (output)
   - 🚧 webm support (output)
+
 ## Requirements
 
 - OpenResty or nginx with ngx_http_lua_module enabled
@@ -43,7 +44,7 @@ https://user-images.githubusercontent.com/3368441/161866581-ee1c745c-f119-430c-8
 
 ## Installation
 
-#### 1. Clone the repo 
+#### 1. Clone the repo
 
 #### 2. nginx config changes
 
@@ -52,31 +53,46 @@ Add to the `http` section of the nginx config:
 ```
 http {
     ...
-    
+
     lua_package_path "/absolute/path/to/nginx-lua-mp4/?.lua;;";
-    
+
     ...
 ```
 
 And here's minimal viable config for 4 locations you need to set up. These locations are described in the sections below:
 ```
 # video location
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
+location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(mp4))$ {
     # these two are required to be set regardless
-    set $luamp_original_video "";
-    set $luamp_transcoded_video "";
-    
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
     # these are needed to be set if you did not use them in regex matching location
     set $luamp_prefix "";
     set $luamp_postfix "";
 
     #pass to transcoder location
-    try_files $uri @luamp_process;
+    try_files $uri @luamp_media_processor;
 }
 
-# process/transcode location
-location @luamp_process {
-    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
+
+# image location
+location ~ ^/(?<luamp_prefix>.*?\/upload\/)(?<luamp_flags>([^\/]+)\/|\/|)(v\d+|)\/(?<luamp_postfix>.*\/|\/|)(?<luamp_media_id>[0-9a-zA-Z_\-\.]+)\.(?<luamp_media_extension>(jpe?g|png|gif|bmp|tiff?|svg|pdf|webp))$ {
+    # these are needed to be set if you did not use them in regex matching location
+    set $luamp_prefix "";
+    set $luamp_postfix "";
+
+    #pass to transcoder location
+    try_files $uri @luamp_media_processor;
+}
+
+# media process/transcode location
+location @luamp_media_processor {
+    # these two are required to be set regardless
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 
 # cache location
@@ -84,16 +100,16 @@ location =/luamp-cache {
     internal;
     root /;
     index off;
-    
-    set_unescape_uri $luamp_transcoded_video $arg_luamp_cached_video_path;
-    
-    try_files $luamp_transcoded_video =404;
+
+    set_unescape_uri $luamp_transcoded_file $arg_luamp_cached_file_path;
+
+    try_files $luamp_transcoded_file =404;
 }
 
 # upstream location
 location =/luamp-upstream {
     internal;
-    rewrite ^(.+)$ $luamp_original_video break;
+    rewrite ^(.+)$ $luamp_original_file break;
     proxy_pass https://old-cdn.example.com;
 }
 
@@ -102,9 +118,9 @@ location =/luamp-upstream {
 #### 2.1. Video location
 This location used as an entry point and to set initial variables. This is usually a location with a `.mp4` at the end.
 
-There are two variables you need to `set`/initialise: `$luamp_original_video` and `$luamp_transcoded_video`.
+There are two variables you need to `set`/initialise: `$luamp_original_file` and `$luamp_transcoded_file`.
 
-There are four variables that may be used as a named capture group in location regex: `luamp_prefix`, `luamp_flags`, `luamp_postfix`, `luamp_filename`.
+There are six variables that may be used as a named capture group in location regex: `luamp_prefix`, `luamp_flags`, `luamp_postfix`, `luamp_media_id`, `luamp_media_extension`.
 
 For example:
 
@@ -113,29 +129,26 @@ https://example.com/asset/video/width_1980,height_1080,crop_padding/2019/12/new_
 luamp_prefix:   asset/video/
 luamp_flags:    width_1980,height_1080,crop_padding
 luamp_postfix:  2019/12/
-luamp_filename: new_year_boardgames_party.mp4
+luamp_media_id: new_year_boardgames_party
+luamp_media_extension: mp4
 ```
 
 If you do not need prefix and postfix, you can omit them from the regexp, but do make sure you `set` them to an empty string in the location. Here's the minimal viable example for simpler URLs with no prefix/postfix:
 
 ```
-location ~ ^/(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)$ {
+location @luamp_media_processor {
     # these two are required to be set regardless
-    set $luamp_original_video "";
-    set $luamp_transcoded_video "";
-    
-    # these are needed to be set if you did not use them in regex matching location
-    set $luamp_prefix "";
-    set $luamp_postfix "";
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
 
-    #pass to transcoder location
-    try_files $uri @luamp_process;
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 
 ```
 
 #### Security considerations
-`prefix`, `postfix` and `filename` are passed to the `os.execute()` with following sanitisation: 
+`prefix`, `postfix` and `media_id` are passed to the `os.execute()` with following sanitisation:
+
 - alphanumeric symbols, underscores, dots and slashes are allowed.
 - all other symbols are stripped.
 - then, double dots are stripped.
@@ -144,15 +157,19 @@ These sanitisation rules are enough to prevent shell injections and path travers
 - `(?<luamp_prefix>[0-9a-zA-Z_\-\.\/]+\/)`
 - `(?<luamp_flags>([0-9a-zA-Z_,\.:]+)\/|)`
 - `(?<luamp_postfix>[0-9a-zA-Z_\-\.\/]+\/)`
-- `(?<luamp_filename>[0-9a-zA-Z_\-\.]+\.mp4)`
+- `(?<luamp_media_id>[0-9a-zA-Z_\-\.]+\.mp4)`
 
 #### 2.2. Process location
 
 Process location is pretty simple, it just passes execution to the LUA part of luamp module:
 
 ```
-location @luamp_process {
-    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/nginx-lua-mp4.lua";
+location @luamp_media_processor {
+    # these two are required to be set regardless
+    set $luamp_original_file "";
+    set $luamp_transcoded_file "";
+
+    content_by_lua_file "/absolute/path/to/nginx-lua-mp4/media-processor.lua";
 }
 ```
 
@@ -165,10 +182,10 @@ location =/luamp-cache {
     internal;
     root /;
     index off;
-    
-    set_unescape_uri $luamp_transcoded_video $arg_luamp_cached_video_path;
-    
-    try_files $luamp_transcoded_video =404;
+
+    set_unescape_uri $luamp_transcoded_file $arg_luamp_cached_video_path;
+
+    try_files $luamp_transcoded_file =404;
 }
 ```
 
@@ -179,12 +196,12 @@ If `luamp` finds no original file to transcode, it will attempt to download it f
 ```
 location =/luamp-upstream {
     internal;
-    rewrite ^(.+)$ $luamp_original_video break;
+    rewrite ^(.+)$ $luamp_original_file break;
     proxy_pass https://old-cdn.example.com;
 }
 ```
 
-`$luamp_original_video` is set within `config.getOriginalsUpstreamPath` function that can be configured in `luamp` config.lua. You can apply whatever logic you may need there to dynamically generate path for the upstream.
+`$luamp_original_file` is set within `config.getOriginalsUpstreamPath` function that can be configured in `luamp` config.lua. You can apply whatever logic you may need there to dynamically generate path for the upstream.
 
 #### 3. nginx-lua-mp4 config
 
@@ -210,7 +227,7 @@ $ nano config.lua
 
 When set to `true`, `luamp` will attempt to download missing original videos from the upstream. Set it to `false` if you have original videos provided by other means to this directory:
 ```
-config.mediaBaseFilepath/$prefix/$postfix/$filename
+config.mediaBaseFilepath/$prefix/$postfix/$media_id.$media_extension
 ```
 
 #### `config.ffmpeg`
@@ -220,6 +237,15 @@ Path to the `ffmpeg` executable. Can be figured out by using `which` command in 
 ```
 $ which ffmpeg
 /usr/local/bin/ffmpeg
+```
+
+#### `config.magick`
+
+Path to the `magick` executable. Can be figured out by using `which` command in the terminal:
+
+```
+$ which magick
+/usr/local/bin/magick
 ```
 
 #### `config.ffmpegDevNull`
@@ -236,45 +262,45 @@ For win:
 config.ffmpegDevNull = '2>NUL' -- win
 ```
 
-#### `config.flagMap`
+#### `config.flagVideoMap`, `config.flagImageMap`
 
-Use this table to customize how flags are called in your URLs. Defaults are one letter flags like `w` for `width`, but you can customise these by editing left side of `flagMap` table:
+Use this table to customize how flags are called in your URLs. Defaults are one letter flags like `w` for `width`, but you can customise these by editing left side of `flagVideoMap` or `flagImageMap` table:
 
 One letter flags (except for DPR) if you want to use flags like `w_200,h_180,c_pad`:
 
 ```
-    ['c'] = 'crop', 
-    ['b'] = 'background',
-    ['dpr'] = 'dpr',
-    ['h'] = 'height',
-    ['w'] = 'width',
+    c = Flag.VIDEO_CROP_KEY,
+    b = Flag.VIDEO_BACKGROUND_KEY,
+    dpr = Flag.VIDEO_DPR_KEY,
+    h = Flag.VIDEO_HEIGHT_KEY,
+    w = Flag.VIDEO_WIDTH_KEY,
 ```
 
 Full flags if you want to use flags like `width_200,height_180,crop_pad`:
 
 ```
-    ['crop'] = 'crop', 
-    ['background'] = 'background',
-    ['dpr'] = 'dpr',
-    ['height'] = 'height',
-    ['width'] = 'width',
+    crop = Flag.VIDEO_CROP_KEY,
+    background = Flag.VIDEO_BACKGROUND_KEY,
+    dpr = Flag.VIDEO_DPR_KEY,
+    height = Flag.VIDEO_HEIGHT_KEY,
+    width = Flag.VIDEO_WIDTH_KEY,
 ```
 
 #### `config.flagPreprocessHook(flag, value)`
 
-Customize this function to preprocess flags or their values. Return values should contain values that are present in `config.flagMap` and `config.flagValueMap`.
+Customize this function to preprocess flags or their values. Return values should contain values that are present in `config.flagVideoMap` or `config.flagImageMap` and `config.flagValueMap`.
 
 #### `config.flagsDelimiter`
 
 Character that is used to separate different flags in URL, e.g. commas in `/w_1280,h_960,c_pad/`.
- 
+
 #### `config.flagValueDelimiter`
 
 Character that is used to separate flag name from the value, e.g. underscores in `/w_1280,h_960,c_pad/`.
 
 #### `config.flagValueMap`
 
-Similar to `config.flagMap` above, but for non-number flag *values* rather than flag names.
+Similar to `config.flagVideoMap` above, but for non-number flag *values* rather than flag names.
 
 Default flag values, e.g. `c_pad` or `c_lpad`, also `b_blurred`:
 
@@ -282,7 +308,7 @@ Default flag values, e.g. `c_pad` or `c_lpad`, also `b_blurred`:
 config.flagValueMap = {
     ['pad'] = 'padding',
     ['lpad'] = 'limited_padding',
-    ['blurred'] = 'blur',
+    ['blurred'] = 'blurred',
 }
 ```
 
@@ -291,7 +317,7 @@ Full flag values, e.g. `c_padding` or `c_limited-padding`:
 config.flagValueMap = {
     ['pading'] = 'padding',
     ['limited-padding'] = 'limited_padding',
-    ['blurred'] = 'blur',
+    ['blurred'] = 'blurred',
 }
 ```
 
@@ -305,7 +331,7 @@ Whether to log whole `luamp` process. Useful for initial setup and for debug.
 
 #### `config.logFfmpegOutput`
 
-Whether to log `ffmpeg` output. Note that `ffmpeg` outputs to `stderr`, and if `logFfmpegOutput` is enabled, it will log to nginx's `error.log`. 
+Whether to log `ffmpeg` output. Note that `ffmpeg` outputs to `stderr`, and if `logFfmpegOutput` is enabled, it will log to nginx's `error.log`.
 
 #### `config.logLevel = ngx.ERR`
 
@@ -315,23 +341,31 @@ Log level, available values: `ngx.STDERR`, `ngx.EMERG`, `ngx.ALERT`, `ngx.CRIT`,
 
 Whether to prepend `ffmpeg` command with `time` utility, if you wish to log time spent in transcoding.
 
-#### `config.maxHeight` and `config.maxWidth`
+#### `config.maxVideoHeight`,`config.maxVideoWidth`, `config.maxImageHeight` and `config.maxImageWidth`
 
-Limit the output video's maximum height or width. If the resulting height or width is exceeding the limit (for example, after a high DPR calculation), it will be capped at the `config.maxHeight` and `config.maxWidth`.
+Limit the maximum height or width of the output media. If the resulting height or width exceeds the limit (for example, after a high DPR calculation), it will be limited to the specified limits.
 
 #### `config.mediaBaseFilepath`
 
-Where videos (both originals and transcoded ones) should be stored. Usually, a directory where assets are stored. Should be readable/writable for nginx. 
+Where videos (both originals and transcoded ones) should be stored. Usually, a directory where assets are stored. Should be readable/writable for nginx.
 
 #### `config.minimumTranscodedFileSize`
 
 Minimum required size (in bytes) for the transcoded file to not be considered broken and deleted (default is 1KB).
 
-During the transcoding, errors may occur and ffmpeg sometimes leaves corrupt files on the FS. Those are usually either 0B or just a few bytes of header. Luamp will delete those that are less than `minimumTranscodedFileSize` bytes. 
+During the transcoding, errors may occur and ffmpeg sometimes leaves corrupt files on the FS. Those are usually either 0B or just a few bytes of header. Luamp will delete those that are less than `minimumTranscodedFileSize` bytes.
 
 #### `config.serveOriginalOnTranscodeFailure`
 
 Serve original file when transcode failed. If set to `false`, luamp will respond with 404 in this case
+
+#### `config.stripColorProfile`
+
+Removes a color profile from the original file.
+
+#### `config.colorProfilePath`
+
+Applies a color profile from specified location.
 
 ## Update
 
@@ -353,10 +387,10 @@ nginx-lua-mp4 $ diff config.lua config.lua.example
 < config.logTime = true
 ---
 > config.logTime = false
-> 
+>
 > -- top limit for output video height (default 4k UHD)
 > config.maxHeight = 2160
-> 
+>
 > -- top limit for output video width (default 4k UHD)
 > config.maxWidth = 3840
 
@@ -367,9 +401,9 @@ You definitely want to keep what was customized by you but also to get new confi
 ```
 nginx-lua-mp4 $ sdiff -s config.lua config.lua.example | grep -e '\s*>' | sed -ne "s/^[[:space:]]*>\t//p"
 -- top limit for output video height (default 4k UHD)
-config.maxHeight = 2160
+config.maxVideoHeight = 2160
 -- top limit for output video width (default 4k UHD)
-config.maxWidth = 3840
+config.maxVideoWidth = 3840
 ```
 
 You can now just copy and paste these lines above the `return config` in `config.lua` and that's it 👌
@@ -379,13 +413,13 @@ You can now just copy and paste these lines above the `return config` in `config
 ### `b` — Background
 
 Available values:
- - `blurred` — when padding is enabled (with `c_pad` or `c_lpad`), the padding box will contain an upscaled blurred video.
+- `blurred` — when padding is enabled (with `c_pad` or `c_lpad`), the padding box will contain an upscaled blurred video.
 
 ### `c` — Crop
 
 Available values:
- - `pad` — when resizing a video, aspect ratio will be preserved and padding box will be added to keep the aspect ratio. 
- - `lpad` — same as `pad` but original video will **not** be scaled up.
+- `pad` — when resizing a video, aspect ratio will be preserved and padding box will be added to keep the aspect ratio.
+- `lpad` — same as `pad` but original video will **not** be scaled up.
 
 ### `dpr` — Device Pixel Ratio
 
@@ -401,12 +435,12 @@ Available values: integer number.
 
 ### `x` — X coordinate for overlay with `[limited_]padding` crop
 
-Available values: 
+Available values:
 - integer number for pixels
 - decimal number in range `(0, 1)` for percentage: 0.25 is 25% of resulting width (after DPR is applied)
 
 ### `y` — Y coordinate for overlay with `[limited_]padding` crop
 
-Available values: 
+Available values:
 - integer number for pixels
 - decimal number in range `(0, 1)` for percentage: 0.25 is 25% of resulting height (after DPR is applied)

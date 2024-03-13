@@ -1,0 +1,17 @@
+worker_processes  1;
+
+error_log  logs/error.log  info;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    lua_package_path "/usr/local/openresty/nginx/nginx-lua-mp4/?.lua;;";
+
+    server {
+        listen       80;
+
+        include ./luamp-locations.conf;
+    }
+}
